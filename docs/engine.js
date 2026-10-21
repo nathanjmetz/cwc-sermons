@@ -110,8 +110,8 @@
       if (s <= 0) continue;
       const v = video(row[0]);
       if (!dateOk(v, rng) || (row[4] != null && !timeOk(v, row[4]))) continue;
-      const r = results.get(v.id) || { ...v, score: 0, moments: [], cited_in: new Set(), hits: 0, desc: 0, kind: "scripture" };
-      results.set(v.id, r);
+      const r = results.get(v.id) || { ...v, score: 0, moments: [], cited_in: new Set(), hits: 0, desc: 0, best: 0, kind: "scripture" };
+      results.set(v.id, r); r.best = Math.max(r.best, s);
       const lab = label({ book: q.book, chapter: row[1], vs: row[2], ve: row[3] });
       if (row[4] == null) { r.cited_in.add(`${row[5]}: ${lab}`); r.score = Math.max(r.score, s * 0.9); r.desc = Math.max(r.desc, s); continue; }
       r.hits++;
@@ -121,6 +121,7 @@
     for (const r of results.values()) {
       r.score += 0.25 * Math.log1p(r.hits) + (r.desc >= 2.6 ? 0.5 : 0);
       r.cited_in = [...r.cited_in].sort(); delete r.hits; delete r.desc;
+      r.near = q.chapter != null && r.best < 0.5; delete r.best;   // asked for a chapter or verse; this only touches the book
     }
     // only cited in the description: start where the book is first read or named aloud
     const idx = new Map(meta.videos.map((v, i) => [v[0], i]));
