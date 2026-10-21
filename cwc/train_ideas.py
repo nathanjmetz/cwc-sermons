@@ -29,8 +29,18 @@ TOP, DEEP, DEEP_FROM, DEEP_TO = 60, 30, 60, 600
 GAP_DS = 450   # passages closer than 45s in the same sermon count as the same moment
 
 
+def base_model():
+    """The stock model, or a saved copy of it (data/train/base-model) on a machine that can't reach Hugging Face."""
+    local = OUT / "base-model"
+    return str(local) if local.exists() else embed.MODEL
+
+
 def passages():
     """(meta [vid, s_ds, e_ds], texts) in the order of data/passages.json."""
+    bundle = OUT / "passages_texts.json"   # written on the Mac, so training can run where the database isn't
+    if bundle.exists():
+        b = json.loads(bundle.read_text())
+        return b["meta"], b["texts"]
     meta = json.loads(embed.PASSAGES.read_text())["passages"]
     con = sqlite3.connect(DB)
     words, texts = {}, []
@@ -92,7 +102,7 @@ def query_vec(model, q):
 def cmd_grade():
     from sentence_transformers import SentenceTransformer
     meta, texts = passages()
-    vecs, model, grades = vectors_for(), SentenceTransformer(embed.MODEL), load_grades()
+    vecs, model, grades = vectors_for(), SentenceTransformer(base_model()), load_grades()
     rnd = random.Random(7)
     for i, q in enumerate(TRAIN):
         order = np.argsort(-(vecs @ query_vec(model, q)))
@@ -122,13 +132,16 @@ def cmd_train(epochs=1):
             examples.append(InputExample(texts=[embed.QUERY_PREFIX + q, texts[k], texts[rnd.choice(neg)]]))
     rnd.shuffle(examples)
     print(f"{len(examples)} training triplets from {len(by_q)} searches")
-    model = SentenceTransformer(embed.MODEL, device="cpu")   # the Mac's GPU runs out of memory and crawls
+    model = SentenceTransformer(base_model(), device="cpu")
     model.max_seq_length = 256   # a one-minute passage is ~200 tokens
     loader = DataLoader(examples, shuffle=True, batch_size=16)
     model.fit(train_objectives=[(loader, losses.MultipleNegativesRankingLoss(model))], epochs=epochs,
               warmup_steps=max(1, len(loader) // 10), optimizer_params={"lr": 1e-5}, show_progress_bar=True)
     model.save(str(TUNED))
     print("saved", TUNED)
+    _, texts = passages()
+    vt = model.encode(texts, batch_size=64, normalize_embeddings=True, show_progress_bar=True).astype(np.float32)
+    np.save(OUT / "tuned_vectors.npy", vt)   # eval and ship reuse these
 
 
 def cmd_eval():
@@ -137,7 +150,7 @@ def cmd_eval():
     from sentence_transformers import SentenceTransformer
     meta, texts = passages()
     grades = load_grades()
-    base = SentenceTransformer(embed.MODEL)
+    base = SentenceTransformer(base_model())
     tuned = SentenceTransformer(str(TUNED))
     vb = vectors_for()
     tv_path = OUT / "tuned_vectors.npy"
