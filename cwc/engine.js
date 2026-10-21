@@ -223,7 +223,7 @@
       progress("Loading the idea-search model (one-time download, about 35 MB)…");
       const { pipeline, env } = await import("https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.0.2");
       if (IDEAS_MODEL) {   // tuned on these sermons (cwc/train_ideas.py), served with the site
-        env.localModelPath = BASE + "model/"; env.allowRemoteModels = false;
+        env.localModelPath = BASE + "model/"; env.allowLocalModels = true; env.allowRemoteModels = false;
         extractor = await pipeline("feature-extraction", IDEAS_MODEL, { dtype: "q8" });
       } else extractor = await pipeline("feature-extraction", "Xenova/bge-small-en-v1.5", { dtype: "q8" });
     }
