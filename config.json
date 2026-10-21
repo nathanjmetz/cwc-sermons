@@ -1,5 +1,9 @@
 {
   "channel_url": "https://www.youtube.com/@CollegeWesleyanChurch",
-  "tabs": ["streams", "videos"],
-  "min_minutes": 15
+  "tabs": [
+    "streams",
+    "videos"
+  ],
+  "min_minutes": 15,
+  "jev_url": "https://cwc-jev.vercel.app/api/rerank"
 }
