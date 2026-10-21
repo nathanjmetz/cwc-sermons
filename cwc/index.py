@@ -167,13 +167,29 @@ def kind_of(title):
     return first if first in ("sermon", "service") else None
 
 
-def skip_duplicate_services(infos):
-    """Ids of Service videos whose date also has a Sermon video (the sermon-only cut wins).
-    A Service with no Sermon that day stays in."""
-    sermon_dates = {td for i in infos if kind_of(i.get("title")) == "sermon"
-                    for td in [title_date(i.get("title"))] if td}
-    return {i["id"] for i in infos if kind_of(i.get("title")) == "service"
-            and title_date(i.get("title")) in sermon_dates}
+def _name(title):
+    """The middle of "Sermon | The Second Call | Ordinary Time | 06-02-24": "the second call"."""
+    parts = [p.strip().lower() for p in (title or "").split("|")]
+    return parts[1] if len(parts) >= 2 and parts[1] and not NUM_DATE.search(parts[1]) else None
+
+
+def skip_duplicate_sermons(infos, has_words):
+    """Ids of Sermon cuts whose full Service is also posted. The service wins because it also
+    holds what was said and sung in worship. A match is the same date, or the same sermon name
+    within three days (some services carry no date in the title). A service with no transcript
+    doesn't count, so its sermon cut stays in."""
+    import datetime as dt
+    day = lambda i: dt.date.fromisoformat(date_of(i)) if date_of(i) else None
+    services = [(day(i), _name(i.get("title"))) for i in infos
+                if kind_of(i.get("title")) == "service" and has_words(i["id"])]
+    skip = set()
+    for i in infos:
+        if kind_of(i.get("title")) != "sermon" or not day(i):
+            continue
+        d, name = day(i), _name(i.get("title"))
+        if any(sd == d or (name and sn == name and sd and abs((sd - d).days) <= 3) for sd, sn in services):
+            skip.add(i["id"])
+    return skip
 
 
 def video_words(con, vid):
@@ -202,12 +218,13 @@ def build(db_path=DB, raw_dir=RAW, verbose=True):
     con.executescript(SCHEMA)
     n_videos = n_refs = 0
     infos = [json.loads(p.read_text()) for p in sorted(raw_dir.glob("*.info.json"))]
-    skip = skip_duplicate_services(infos)
+    has_words = lambda vid: (raw_dir / f"{vid}.json3").exists()
+    skip = skip_duplicate_sermons(infos, has_words)
     for info in infos:
         vid = info["id"]
         if vid in skip:
             if verbose:
-                print(f"  {vid}  skipped (Sermon video exists for this date)  {info.get('title')}")
+                print(f"  {vid}  skipped (the full service is posted)  {info.get('title')}")
             continue
         cap_path = raw_dir / f"{vid}.json3"
         words = parse_json3(json.loads(cap_path.read_text())) if cap_path.exists() else []
@@ -236,7 +253,7 @@ def build(db_path=DB, raw_dir=RAW, verbose=True):
     con.close()
     tmp.replace(db_path)
     if verbose:
-        print(f"Indexed {n_videos} videos ({len(skip)} duplicate services skipped), {n_refs} scripture references -> {db_path}")
+        print(f"Indexed {n_videos} videos ({len(skip)} sermon cuts skipped for their full service), {n_refs} scripture references -> {db_path}")
 
 
 if __name__ == "__main__":

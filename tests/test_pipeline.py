@@ -100,19 +100,25 @@ def test_title_dates():
     assert index.date_of({"title": "Special Event", "upload_date": "20261019"}) == "2026-10-19"
 
 
-def test_sermon_cut_replaces_same_day_service(tmp_path):
+def test_full_service_replaces_sermon_cut(tmp_path):
     raw = tmp_path / "raw"; raw.mkdir()
-    videos = {"SERMON00001": "Sermon | Ordinary Time | 10.18.26",
-              "SERVICE0001": "Service | Ordinary Time | 10.18.26",
-              "SERVICE0002": "Service | Ordinary Time | 1.7.18",   # no sermon cut that day: keep
-              "SPECIAL0001": "Night of Worship"}
-    for vid, title in videos.items():
-        (raw / f"{vid}.info.json").write_text(json.dumps({"id": vid, "title": title, "upload_date": "20261019"}))
-        (raw / f"{vid}.json3").write_text(json.dumps(json3([(5, "forgiveness is a gift")])))
+    videos = {"SERMON00001": ("Sermon | Ordinary Time | 10.18.26", "20261019"),
+              "SERVICE0001": ("Service | Ordinary Time | 10.18.26", "20261019"),
+              "SERVICE0002": ("Service | Ordinary Time | 1.7.18", "20180107"),    # only the service: keep
+              "SERMON00002": ("Sermon | The Second Call | Ordinary Time | 06-02-24", "20240603"),
+              "SERVICE0003": ("Service | The Second Call", "20240602"),             # no date in title: match by name
+              "SERMON00003": ("Sermon | Advent | 12.1.24", "20241202"),
+              "SERVICE0004": ("Service | Advent | 12.1.24", "20241201"),            # no transcript: sermon stays
+              "SERMON00004": ("Sermon | Ordinary Time | 10.25.26", "20261026"),    # next week's sermon: keep
+              "SPECIAL0001": ("Night of Worship", "20261019")}
+    for vid, (title, up) in videos.items():
+        (raw / f"{vid}.info.json").write_text(json.dumps({"id": vid, "title": title, "upload_date": up}))
+        if vid != "SERVICE0004":
+            (raw / f"{vid}.json3").write_text(json.dumps(json3([(5, "forgiveness is a gift")])))
     db = tmp_path / "s.db"
     index.build(db, raw, verbose=False)
     con = search.connect(db)
     ids = {r[0] for r in con.execute("SELECT id FROM videos")}
-    assert ids == {"SERMON00001", "SERVICE0002", "SPECIAL0001"}
+    assert ids == {"SERVICE0001", "SERVICE0002", "SERVICE0003", "SERMON00003", "SERVICE0004", "SERMON00004", "SPECIAL0001"}
     dates = dict(con.execute("SELECT id, date FROM videos"))
-    assert dates["SERMON00001"] == "2026-10-18" and dates["SERVICE0002"] == "2018-01-07"
+    assert dates["SERVICE0001"] == "2026-10-18" and dates["SERVICE0002"] == "2018-01-07"

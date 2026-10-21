@@ -150,11 +150,33 @@ mark { background: var(--mark); color: inherit; border-radius: 3px; padding: 0 2
 
 .sermon { max-width: 1080px; margin: 0 auto; padding: 24px 32px 56px; }
 .back { display: none; border: 0; background: none; color: var(--blue); font-weight: 700; padding: 0 0 12px; cursor: pointer; }
-/* keep the video short enough that the moments show without scrolling */
-.player { position: relative; aspect-ratio: 16/9; background: #000; border-radius: var(--r-lg); overflow: hidden; box-shadow: var(--shadow-md);
-          max-width: max(560px, calc((100dvh - var(--bar) - 330px) * 16 / 9)); }
-.player iframe, .player > div { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
-.shead { display: flex; align-items: flex-start; gap: 16px; margin: 20px 0 0; }
+/* keep the video and ticker short enough that the moments show without scrolling */
+.stage { max-width: max(560px, calc((100dvh - var(--bar) - 420px) * 16 / 9)); display: grid; gap: 12px; }
+.player { position: relative; aspect-ratio: 16/9; background: #000; border-radius: var(--r-lg); overflow: hidden; box-shadow: var(--shadow-md); }
+/* the YouTube frame is taller than the box, so its title bar and logo sit in the cropped-off letterbox */
+.player #player, .player iframe { position: absolute; left: 0; top: -64px; width: 100%; height: calc(100% + 128px); border: 0; pointer-events: none; }
+.shield { position: absolute; inset: 0; border: 0; padding: 0; background: transparent; cursor: pointer; display: grid; place-items: center; }
+.shield .big { width: 76px; height: 76px; border-radius: 50%; background: rgba(0,52,92,.72); color: #fff; display: grid; place-items: center;
+               backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); box-shadow: 0 8px 24px rgba(0,0,0,.25);
+               opacity: 0; transform: scale(.85); transition: opacity .25s ease-out, transform .25s var(--ease); }
+.shield .big svg { width: 30px; height: 30px; margin-left: 4px; }
+.player.paused .shield .big { opacity: 1; transform: none; }
+.shield:hover .big { background: rgba(0,124,166,.85); }
+.controls { position: absolute; left: 0; right: 0; bottom: 0; display: flex; align-items: center; gap: 12px; padding: 28px 16px 12px; color: #fff;
+            background: linear-gradient(transparent, rgba(0,20,36,.72)); opacity: 0; transform: translateY(6px);
+            transition: opacity .25s ease-out, transform .25s var(--ease); }
+.player:hover .controls, .player.paused .controls, .controls:focus-within { opacity: 1; transform: none; }
+.controls button { border: 0; background: transparent; color: #fff; width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; cursor: pointer; flex: none; }
+.controls button:hover { background: rgba(255,255,255,.16); }
+.controls svg { width: 20px; height: 20px; }
+.clock { font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.scrub { flex: 1; min-width: 60px; -webkit-appearance: none; appearance: none; height: 18px; background: transparent; cursor: pointer; --p: 0%; }
+.scrub::-webkit-slider-runnable-track { height: 4px; border-radius: 2px; background: linear-gradient(90deg, var(--sky) var(--p), rgba(255,255,255,.35) var(--p)); }
+.scrub::-moz-range-track { height: 4px; border-radius: 2px; background: linear-gradient(90deg, var(--sky) var(--p), rgba(255,255,255,.35) var(--p)); }
+.scrub::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; margin-top: -5px; border-radius: 50%; background: #fff; border: 0; box-shadow: 0 1px 4px rgba(0,0,0,.4); }
+.scrub::-moz-range-thumb { width: 14px; height: 14px; border-radius: 50%; background: #fff; border: 0; }
+.player:fullscreen { border-radius: 0; aspect-ratio: auto; width: 100vw; height: 100vh; }
+.shead { display: flex; align-items: flex-start; gap: 16px; margin: 22px 0 0; }
 .shead > div { flex: 1; min-width: 0; }
 .sermon h2 { color: var(--deep); font-size: 26px; font-weight: 800; letter-spacing: -.015em; line-height: 1.2; margin: 0 0 4px; }
 .sermon .meta { color: var(--muted); font-size: 14px; }
@@ -199,7 +221,7 @@ mark { background: var(--mark); color: inherit; border-radius: 3px; padding: 0 2
 .moment .tx { font-size: 13.5px; line-height: 1.55; color: var(--ink); display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
 
 /* Karaoke ticker: one line of the sermon gliding past, the spoken word lit */
-.ticker { position: relative; height: 78px; overflow: hidden; border-radius: var(--r); background: var(--deep); }
+.ticker { position: relative; height: 72px; overflow: hidden; border-radius: var(--r); background: var(--deep); }
 .lane { position: absolute; inset: 0; overflow: hidden;
         -webkit-mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
         mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent); }
@@ -240,7 +262,9 @@ footer a:hover { text-decoration: underline; }
   .app.viewing .main { display: block; }
   .back { display: block; }
   .sermon { padding: 16px; }
-  .player { border-radius: var(--r); max-width: none; }
+  .player { border-radius: var(--r); }
+  .stage { max-width: none; }
+  .clock { font-size: 12px; } .controls { gap: 6px; padding: 24px 8px 6px; }
   .shead { flex-direction: column; gap: 10px; }
   .sermon h2 { font-size: 22px; }
   .card { padding: 16px; }
@@ -373,7 +397,20 @@ button:active, .chip:active, .item:active, .moment:active, .how button:active { 
     </div>
     <article class="sermon" id="sermon" hidden>
       <button class="back" id="back">← Results</button>
-      <div class="player"><div id="player"></div></div>
+      <div class="stage">
+        <div class="player paused" id="pl">
+          <div id="player"></div>
+          <button type="button" class="shield" id="shield" aria-label="Play"><span class="big"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.4-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5Z"/></svg></span></button>
+          <div class="controls">
+            <button type="button" id="pp" aria-label="Play"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.4-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5Z"/></svg></button>
+            <span class="clock" id="clock">0:00</span>
+            <input class="scrub" id="scrub" type="range" min="0" max="1000" value="0" aria-label="Seek">
+            <button type="button" id="mute" aria-label="Mute"></button>
+            <button type="button" id="fs" aria-label="Full screen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
+          </div>
+        </div>
+        <div class="ticker" id="ticker" aria-hidden="true"><div class="lane"><div class="track" id="track"></div></div><div class="idle" id="idle">The words appear here as the sermon plays</div></div>
+      </div>
       <div class="shead">
         <div><h2 id="s-title"></h2><div class="meta" id="s-meta"></div></div>
         <a class="ytbtn" id="yt" target="_blank" rel="noopener" href="#"><svg class="i" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M23 7.2a3 3 0 0 0-2.1-2.1C19 4.6 12 4.6 12 4.6s-7 0-8.9.5A3 3 0 0 0 1 7.2 31 31 0 0 0 .5 12 31 31 0 0 0 1 16.8a3 3 0 0 0 2.1 2.1c1.9.5 8.9.5 8.9.5s7 0 8.9-.5a3 3 0 0 0 2.1-2.1 31 31 0 0 0 .5-4.8 31 31 0 0 0-.5-4.8ZM9.8 15.1V8.9l5.7 3.1-5.7 3.1Z"/></svg>Open on YouTube</a>
@@ -384,8 +421,7 @@ button:active, .chip:active, .item:active, .moment:active, .how button:active { 
         <div class="moments" id="moments"></div>
       </section>
       <section class="card" aria-labelledby="live-h">
-        <div class="cardhead"><h3 id="live-h">Follow along</h3><button type="button" class="linkbtn" id="toggle-full">Read the full transcript</button></div>
-        <div class="ticker" id="ticker"><div class="lane"><div class="track" id="track"></div></div><div class="idle" id="idle">The words appear here as the sermon plays</div></div>
+        <div class="cardhead" style="margin:0"><h3 id="live-h">Full transcript</h3><button type="button" class="linkbtn" id="toggle-full">Show it</button></div>
         <div class="full" id="full" hidden></div>
       </section>
     </article>
@@ -424,7 +460,10 @@ const clock = t => { t = Math.max(0, t|0); const h = t/3600|0, m = (t%3600)/60|0
   return (h ? h + ":" + String(m).padStart(2,"0") : m) + ":" + String(s).padStart(2,"0"); };
 const fmtDate = d => d ? new Date(d + "T12:00:00").toLocaleDateString(undefined, {year:"numeric", month:"long", day:"numeric"}) : "";
 // "Sermon | Ordinary Time | 10.18.26" -> "Ordinary Time"; other titles unchanged
-const niceTitle = t => { const p = (t || "").split("|").map(s => s.trim()); return p.length >= 3 && /^(sermon|service)$/i.test(p[0]) ? p.slice(1, -1).join(" · ") : t; };
+const niceTitle = t => { let p = (t || "").split("|").map(s => s.trim());
+  if (p.length < 2 || !/^(sermon|service)$/i.test(p[0])) return t;
+  p = p.slice(1); if (p.length > 1 && /\d{1,2}[.\/-]\d{1,2}[.\/-]\d{2,4}/.test(p[p.length - 1])) p.pop();
+  return p.join(" · "); };
 const kindOf = t => /^\s*service\s*\|/i.test(t || "") ? "Full service" : "";
 
 const MODES = {
@@ -621,8 +660,42 @@ async function play(id, start) {
   playerVid = id;
   if (player) { player.loadVideoById({ videoId: id, startSeconds: start }); return; }
   player = new YT.Player("player", { videoId: id, host: "https://www.youtube-nocookie.com",
-    playerVars: { start, autoplay: 1, rel: 0, modestbranding: 1, playsinline: 1 } });
+    // our own controls sit on top; YouTube's buttons, captions, and cards stay off
+    playerVars: { start, autoplay: 1, controls: 0, disablekb: 1, fs: 0, rel: 0, modestbranding: 1, playsinline: 1,
+                  iv_load_policy: 3, cc_load_policy: 0 },
+    events: { onReady: noCaptions, onStateChange: e => { if (e.data === 1) noCaptions(); syncControls(); } } });
 }
+const noCaptions = () => { try { player.unloadModule("captions"); player.unloadModule("cc"); } catch (e) {} };
+
+/* ---------- our player controls ---------- */
+const ICON = {
+  play: `<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.4-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5Z"/></svg>`,
+  pause: `<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1.2"/><rect x="14" y="5" width="4" height="14" rx="1.2"/></svg>`,
+  sound: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9.5h3.5L12 6v12l-4.5-3.5H4z" fill="currentColor"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/></svg>`,
+  muted: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9.5h3.5L12 6v12l-4.5-3.5H4z" fill="currentColor"/><path d="m16 9.5 5 5M21 9.5l-5 5"/></svg>`,
+};
+const playing = () => player && player.getPlayerState && player.getPlayerState() === 1;
+function syncControls() {
+  if (!player || !player.getPlayerState) return;
+  const on = playing(), muted = player.isMuted && player.isMuted();
+  $("#pl").classList.toggle("paused", !on);
+  $("#pp").innerHTML = on ? ICON.pause : ICON.play; $("#pp").setAttribute("aria-label", on ? "Pause" : "Play");
+  $("#shield").setAttribute("aria-label", on ? "Pause" : "Play");
+  $("#mute").innerHTML = muted ? ICON.muted : ICON.sound; $("#mute").setAttribute("aria-label", muted ? "Unmute" : "Mute");
+}
+const toggle = () => { if (!player || !player.getPlayerState) return; playing() ? player.pauseVideo() : player.playVideo(); };
+$("#shield").onclick = toggle; $("#pp").onclick = toggle;
+$("#mute").onclick = () => { if (!player || !player.isMuted) return; player.isMuted() ? player.unMute() : player.mute(); setTimeout(syncControls, 60); };
+$("#fs").onclick = () => document.fullscreenElement ? document.exitFullscreen() : $("#pl").requestFullscreen?.();
+let scrubbing = false;
+$("#scrub").addEventListener("input", () => { scrubbing = true; });
+$("#scrub").addEventListener("change", () => { scrubbing = false; const d = player?.getDuration?.() || 0; if (d) seek(Math.round(+$("#scrub").value / 1000 * d)); });
+function controlsTick(t) {
+  const d = player?.getDuration?.() || 0; if (!d) return;
+  $("#clock").textContent = `${clock(t)} / ${clock(d)}`;
+  if (!scrubbing) { const v = Math.round(t / d * 1000); $("#scrub").value = v; $("#scrub").style.setProperty("--p", v / 10 + "%"); }
+}
+$("#mute").innerHTML = ICON.sound;
 function seek(t) {
   if (!player || !player.seekTo) return;
   player.seekTo(t, true); player.playVideo();
@@ -658,7 +731,7 @@ function frame(ts) {
   requestAnimationFrame(frame);
   if ($("#sermon").hidden) return;
   const t = currentTime(); if (t == null) return;
-  timeline(t);
+  timeline(t); controlsTick(t);
   if (!tx) return;
   const k = idxAt(t);
   if (winStart < 0 || k < winStart + 5 || k > winStart + WINDOW - 50) { const keep = smoothX != null && winStart >= 0 && spans[k - winStart]; renderTrack(k);
@@ -697,7 +770,7 @@ function timeline(t) {
 
 /* ---------- full transcript ---------- */
 let paras = [], curPara = -1;
-$("#toggle-full").onclick = () => { const f = $("#full"); f.hidden = !f.hidden; $("#toggle-full").textContent = f.hidden ? "Read the full transcript" : "Hide the full transcript"; if (!f.hidden) buildFull(); };
+$("#toggle-full").onclick = () => { const f = $("#full"); f.hidden = !f.hidden; $("#toggle-full").textContent = f.hidden ? "Show it" : "Hide it"; if (!f.hidden) buildFull(); };
 function buildFull() {
   if (!tx) return;
   paras = []; let start = 0;
