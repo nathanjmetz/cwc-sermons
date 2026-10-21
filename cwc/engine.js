@@ -16,9 +16,10 @@
     if (w.length > 4) w = w.replace(/(ing|ed|es|s|ness|ful|ly)$/, "");
     return w.slice(0, 7);
   };
-  const video = i => { const [id, title, date, duration, thumbnail] = meta.videos[i];
-    return { id, title, date, duration, thumbnail, url: `https://www.youtube.com/watch?v=${id}` }; };
-  const dateOk = (v, rng) => !rng || (v.date && rng[0] <= v.date && v.date <= rng[1]);
+  const video = i => { const [id, title, date, duration, thumbnail, , speakers = []] = meta.videos[i];
+    return { id, title, date, duration, thumbnail, speakers, url: `https://www.youtube.com/watch?v=${id}` }; };
+  let only = null;   // ids a speaker filter allows, for the search in progress
+  const dateOk = (v, rng) => (!only || only.has(v.id)) && (!rng || (v.date && rng[0] <= v.date && v.date <= rng[1]));
   const pad = n => String(n).padStart(2, "0");
   const iso = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
   const addDays = (d, n) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
@@ -306,13 +307,14 @@
     return out;
   }
 
-  async function search(q, limit, from, to, mode) {
+  async function search(q, limit, from, to, mode, who) {
     await loadMeta();
+    only = who ? new Set(meta.videos.filter(v => (v[6] || []).includes(who)).map(v => v[0])) : null;
     if (!refRe) buildRefRe();
     q = (q || "").trim();
     let [text, rng] = extractDates(q);
     if (from || to) rng = [from || "0000-00-00", to || "9999-12-31"];
-    const info = { query: q, date_range: rng, scripture: null, mode: mode || "words" };
+    const info = { query: q, date_range: rng, scripture: null, mode: mode || "words", speaker: who || null };
     if (mode === "ideas" && text) { const results = await searchIdeas(text, rng, limit); return { ...info, count: results.length, results }; }
     const ref = text ? parseRef(text) : null;
     let results;
@@ -323,7 +325,7 @@
       if (rest) { const keep = new Set((await searchText(rest, rng, 500)).map(r => r.id)); results = results.filter(r => keep.has(r.id)); }
       if (!results.length && ref.chapter == null) results = await searchText(text, rng, limit);
     } else if (text) results = await searchText(text, rng, limit);
-    else if (rng) results = meta.videos.map((_, i) => video(i)).filter(v => dateOk(v, rng)).slice(0, limit)
+    else if (rng || only) results = meta.videos.map((_, i) => video(i)).filter(v => dateOk(v, rng)).slice(0, limit)
       .map(v => ({ ...v, score: 0, start: 0, moments: [], kind: "date" }));
     else results = [];
     return { ...info, count: results.length, results };
@@ -335,7 +337,7 @@
     const url = new URL(typeof input === "string" ? input : input.url, location.href);
     if (url.pathname.endsWith("/api/search")) {
       const p = url.searchParams;
-      try { return json(await search(p.get("q"), Math.min(+(p.get("limit") || 20), 100), p.get("from"), p.get("to"), p.get("mode"))); }
+      try { return json(await search(p.get("q"), Math.min(+(p.get("limit") || 20), 100), p.get("from"), p.get("to"), p.get("mode"), p.get("who"))); }
       catch (e) { return json({ error: String(e) }); }
     }
     if (url.pathname.endsWith("/api/stats")) return json((await loadMeta()).stats);

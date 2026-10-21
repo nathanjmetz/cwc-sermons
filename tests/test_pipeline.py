@@ -122,3 +122,14 @@ def test_full_service_replaces_sermon_cut(tmp_path):
     assert ids == {"SERVICE0001", "SERVICE0002", "SERVICE0003", "SERMON00003", "SERMON00004", "SPECIAL0001"}
     dates = dict(con.execute("SELECT id, date FROM videos"))
     assert dates["SERVICE0001"] == "2026-10-18" and dates["SERVICE0002"] == "2018-01-07"
+
+
+def test_speakers():
+    f = index.speakers_of
+    assert f("Sermon | The Whisper", "Steve DeNeff - 1 Kings 19:3-4a") == ["Steve DeNeff"]
+    assert f("Service | X", "Connect Card\nhttps://x\n\nSermon Summary\nRev. Eric Crisp - Ruth 1.") == ["Eric Crisp"]
+    assert f("Service | Against the Wind", "Emily Vermilya and Steve DeNeff: In the midst") == ["Emily Vermilya", "Steve DeNeff"]
+    assert f("Tabl•Ed 102 | What Do We Do With This Book? (Dr. Chris Bounds)", "") == ["Chris Bounds"]
+    assert f("Biblical Financial Principles | Ryan Jones", "") == ["Ryan Jones"]
+    assert f("X", "Rev. Matt Beck - Luke 2") == ["Matthew Beck"]
+    assert f("X", "Worship Resources - songs and prayers") == []

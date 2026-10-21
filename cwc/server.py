@@ -50,7 +50,7 @@ class Handler(BaseHTTPRequestHandler):
             if u.path == "/api/search":
                 limit = min(int(qs.get("limit", 20)), 100)
                 return self._send(200, S.search(con(), qs.get("q", ""), limit, qs.get("from"), qs.get("to"),
-                                                qs.get("mode", "words"), qs.get("jev") != "0"))
+                                                qs.get("mode", "words"), qs.get("jev") != "0", qs.get("who")))
             if u.path == "/api/transcript":
                 words, times = video_words(con(), qs.get("id", ""))
                 return self._send(200, {"w": " ".join(words), "t": times})

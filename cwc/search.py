@@ -88,12 +88,23 @@ def fts_query(text, mode="and"):
 
 def _video(con, vid, cache):
     if vid not in cache:
-        cache[vid] = dict(con.execute("SELECT id, title, date, duration, thumbnail, url FROM videos WHERE id=?",
+        cache[vid] = dict(con.execute("SELECT id, title, date, duration, thumbnail, url, speakers FROM videos WHERE id=?",
                                       (vid,)).fetchone())
+        cache[vid]["speakers"] = _split(cache[vid]["speakers"])
     return cache[vid]
 
 
+_split = lambda s: [n for n in (s or "").split("; ") if n]
+
+
+class Within(tuple):
+    """A (from, to) date range that can also hold the videos a speaker filter allows."""
+    only = None
+
+
 def _date_ok(v, rng):
+    if getattr(rng, "only", None) is not None and v["id"] not in rng.only:
+        return False
     return not rng or (v["date"] and rng[0] <= v["date"] <= rng[1])
 
 
@@ -232,17 +243,22 @@ def search_text(con, text, rng, limit):
 
 
 def browse_dates(con, rng, limit):
-    rows = con.execute("SELECT id, title, date, duration, thumbnail, url FROM videos "
-                       "WHERE date BETWEEN ? AND ? ORDER BY date DESC LIMIT ?", (*rng, limit)).fetchall()
-    return [{**dict(r), "score": 0, "start": 0, "moments": [], "kind": "date"} for r in rows]
+    rows = con.execute("SELECT id, title, date, duration, thumbnail, url, speakers FROM videos "
+                       "WHERE date BETWEEN ? AND ? ORDER BY date DESC", tuple(rng)).fetchall()
+    rows = [{**dict(r), "speakers": _split(r["speakers"])} for r in rows]
+    rows = [r for r in rows if _date_ok(r, rng)][:limit]
+    return [{**r, "score": 0, "start": 0, "moments": [], "kind": "date"} for r in rows]
 
 
-def search(con, q, limit=20, date_from=None, date_to=None, mode="words", jev=True):
+def search(con, q, limit=20, date_from=None, date_to=None, mode="words", jev=True, speaker=None):
     q = (q or "").strip()
     text, rng = extract_dates(q)
     if date_from or date_to:
         rng = (date_from or "0000-00-00", date_to or "9999-12-31")
-    info = {"query": q, "date_range": rng, "scripture": None}
+    info = {"query": q, "date_range": rng, "scripture": None, "speaker": speaker or None}
+    if speaker:
+        rng = Within(rng or ("0000-00-00", "9999-12-31"))
+        rng.only = {r[0] for r in con.execute("SELECT id, speakers FROM videos") if speaker in _split(r[1])}
     info["mode"] = mode
     if mode == "ideas" and text:
         return {**info, **_count(search_ideas(con, text, rng, limit, use_jev=jev))}
@@ -277,7 +293,13 @@ def stats(con):
     v = con.execute("SELECT COUNT(*), MIN(date), MAX(date), SUM(duration), SUM(words) FROM videos").fetchone()
     top = con.execute("SELECT book, COUNT(DISTINCT video_id) n FROM refs GROUP BY book ORDER BY n DESC LIMIT 12").fetchall()
     return {"videos": v[0], "first": v[1], "last": v[2], "hours": round((v[3] or 0) / 3600, 1),
-            "words": v[4] or 0, "top_books": [dict(r) for r in top]}
+            "words": v[4] or 0, "top_books": [dict(r) for r in top], "speakers": speaker_counts(con)}
+
+
+def speaker_counts(con):
+    from collections import Counter
+    n = Counter(name for (s,) in con.execute("SELECT speakers FROM videos") for name in _split(s))
+    return [[name, c] for name, c in sorted(n.items(), key=lambda x: (-x[1], x[0]))]
 
 
 # ---------- idea search (meaning, not words) ----------

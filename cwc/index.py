@@ -28,7 +28,8 @@ VERSE_CONTEXT_SECONDS = 240  # a bare "verse 9" attaches to the book/chapter sai
 SCHEMA = """
 CREATE TABLE videos (
   id TEXT PRIMARY KEY, title TEXT, description TEXT, date TEXT, duration REAL,
-  thumbnail TEXT, url TEXT, caption_source TEXT, words INTEGER
+  thumbnail TEXT, url TEXT, caption_source TEXT, words INTEGER,
+  speakers TEXT    -- "Steve DeNeff; Emily Vermilya", from the title or description
 );
 CREATE TABLE chunks (
   id INTEGER PRIMARY KEY, video_id TEXT, start REAL, end REAL, text TEXT,
@@ -167,6 +168,35 @@ def kind_of(title):
     return first if first in ("sermon", "service") else None
 
 
+HONORIFIC = r"(?:(?:Rev(?:erend)?|Drs?|Pastor|Bishop|Mr|Mrs|Ms)\.?\s*)"
+PERSON = r"([A-Z][a-zA-Z'’]+(?:\s+[A-Z][a-zA-Z'’-]+){1,2})"
+# "Steve DeNeff - 1 Kings 19", "Sermon Summary\nEmily Vermilya, John 2", "Emily Vermilya and Steve DeNeff: ..."
+SPEAKER_LINE = re.compile(rf"^[ \t]*{HONORIFIC}?{PERSON}(?:\s+and\s+{HONORIFIC}?{PERSON})?\s*[-–—,:]\s", re.M)
+SPEAKER_TITLE = [re.compile(rf"\(\s*{HONORIFIC}?{PERSON}\s*\)"),                # "... (Dr. Chris Bounds)"
+                 re.compile(rf"(?:\||\s{{3}})\s*{HONORIFIC}?{PERSON}\s*$")]       # "... | Ryan Jones", "...   Dr  Jim Vermilya"
+NOT_A_NAME = re.compile(r"(Connect|Offering|Sermon|Service|Summary|Join|Ordinary|Advent|Lent|Easter|Week|Session|The|Good|Holy|"
+                        r"Palm|Worship|Christmas|Outside|Transfiguration|Season|Ash|Baptism|Pentecost|Sunday|Panel|Night|"
+                        r"Festival|Marketplace|Communion|Prayer|Scripture|Watch|Live)\b")
+SPEAKER_ALIASES = {"Matt Beck": "Matthew Beck"}
+
+
+def speakers_of(title, description):
+    """Who preached or taught, from the title or the first speaker line of the description."""
+    found = []
+    for pat in SPEAKER_TITLE:
+        found += [m[1] for m in pat.finditer(title or "")]
+    m = SPEAKER_LINE.search((description or "").replace("\r", "\n"))
+    if m:
+        found += [n for n in m.groups() if n]
+    out = []
+    for n in found:
+        n = re.sub(r"\s+", " ", n).strip(" .-")
+        n = SPEAKER_ALIASES.get(n, n)
+        if not NOT_A_NAME.match(n) and n not in out:
+            out.append(n)
+    return out
+
+
 def _name(title):
     """The middle of "Sermon | The Second Call | Ordinary Time | 06-02-24": "the second call"."""
     parts = [p.strip().lower() for p in (title or "").split("|")]
@@ -231,11 +261,12 @@ def build(db_path=DB, raw_dir=RAW, verbose=True):
             continue
         cap_path = raw_dir / f"{vid}.json3"
         words = parse_json3(json.loads(cap_path.read_text())) if cap_path.exists() else []
-        con.execute("INSERT INTO videos VALUES (?,?,?,?,?,?,?,?,?)", (
+        con.execute("INSERT INTO videos VALUES (?,?,?,?,?,?,?,?,?,?)", (
             vid, info.get("title"), info.get("description") or "", date_of(info), info.get("duration"),
             info.get("thumbnail") or f"https://i.ytimg.com/vi/{vid}/hqdefault.jpg",
             info.get("webpage_url") or f"https://www.youtube.com/watch?v={vid}",
-            info.get("caption_source"), len(words)))
+            info.get("caption_source"), len(words),
+            "; ".join(speakers_of(info.get("title"), info.get("description")))))
         for c in make_chunks(words):
             con.execute("INSERT INTO chunks (video_id, start, end, text, times) VALUES (?,?,?,?,?)", (vid, *c))
         rows = []
