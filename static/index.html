@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>Sermon Library · College Wesleyan Church</title>
+<link rel="icon" href="cwc-logo.webp">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* Colors and type taken from collegewes.com (Elementor globals + computed styles, 2026-10-21).
+   Their site is light-only, so this page is too. */
+:root {
+  --cwc-sky: #0099CC;      /* top bar */
+  --cwc-blue: #005A9E;     /* headings, links */
+  --cwc-navy: #1A3368;     /* pill buttons, hero */
+  --cwc-green: #70BF44;    /* accent */
+  --ink: #333333; --muted: #54595F; --line: #E2E5E9; --bg: #FFFFFF; --soft: #F3F6F9;
+  --footer: #54595F; --footer-deep: #43464C; --mark: #FFF1A8;
+}
+* { box-sizing: border-box; }
+html { color-scheme: light; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.6 "Open Sans", system-ui, sans-serif; }
+a { color: var(--cwc-blue); }
+:focus-visible { outline: 3px solid var(--cwc-green); outline-offset: 2px; }
+.inner { max-width: 1140px; margin: 0 auto; padding: 0 16px; }
+
+/* Top bar */
+.topbar { background: var(--cwc-sky); color: #fff; position: sticky; top: 0; z-index: 10; }
+.topbar .inner { display: flex; align-items: center; gap: 16px; min-height: 64px; }
+.brand { display: flex; align-items: center; gap: 10px; color: #fff; text-decoration: none; font-weight: 700; }
+.brand img { width: 45px; height: 45px; display: block; }
+.brand span { font-size: 15px; line-height: 1.2; }
+.nav { margin-left: auto; display: flex; gap: 2px; list-style: none; padding: 0; margin-block: 0; }
+.nav a { display: block; color: #fff; text-decoration: none; font-weight: 600; font-size: 15px; padding: 8px 12px; border-radius: 4px; }
+.nav a:hover { background: rgba(255,255,255,.15); }
+.nav a[aria-current] { background: #fff; color: var(--cwc-blue); }
+.menu { display: none; margin-left: auto; }
+.menu summary { list-style: none; cursor: pointer; color: #fff; font-weight: 700; padding: 8px 14px; border: 2px solid #fff; border-radius: 50px; }
+.menu summary::-webkit-details-marker { display: none; }
+.menu ul { position: absolute; right: 16px; top: 60px; background: #fff; list-style: none; margin: 0; padding: 8px 0; min-width: 200px;
+           border-radius: 6px; box-shadow: 0 10px 30px rgba(0,0,0,.18); }
+.menu ul a { display: block; padding: 10px 18px; color: var(--ink); text-decoration: none; font-weight: 600; }
+.menu ul a[aria-current] { color: var(--cwc-blue); }
+@media (max-width: 1020px) { .nav { display: none; } .menu { display: block; } }
+
+/* Hero */
+.hero { background: var(--cwc-navy); color: #fff; text-align: center; padding: clamp(40px, 7vw, 88px) 0 clamp(36px, 6vw, 72px); }
+.hero h1 { font-weight: 800; font-size: clamp(34px, 6vw, 64px); line-height: 1.1; margin: 0 0 14px; letter-spacing: -.01em; }
+.hero p { margin: 0 auto 28px; max-width: 640px; font-size: clamp(16px, 2vw, 20px); color: rgba(255,255,255,.88); }
+form { display: flex; gap: 8px; max-width: 760px; margin: 0 auto; background: #fff; border-radius: 50px; padding: 6px; }
+form input[type=search] { flex: 1; min-width: 0; border: 0; background: transparent; color: var(--ink);
+       font: inherit; font-size: 18px; padding: 10px 18px; outline: none; border-radius: 50px; }
+form input[type=search]:focus-visible { outline: none; }
+form:focus-within { box-shadow: 0 0 0 3px var(--cwc-green); }
+form button { border: 0; background: var(--cwc-sky); color: #fff; font: inherit; font-weight: 700; padding: 0 28px; border-radius: 50px; cursor: pointer; }
+form button:hover { background: var(--cwc-blue); }
+.hero .row { justify-content: center; }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 16px 0 0; }
+.chip { border: 1px solid rgba(255,255,255,.55); background: transparent; color: #fff; border-radius: 50px; padding: 5px 14px;
+        font: inherit; font-size: 14px; font-weight: 500; cursor: pointer; transition: background .15s ease-out; }
+.chip:hover { background: rgba(255,255,255,.15); }
+.dates { color: rgba(255,255,255,.85); font-size: 14px; gap: 8px; }
+.dates input { font: inherit; font-size: 14px; background: #fff; color: var(--ink); border: 0; border-radius: 50px; padding: 4px 12px; }
+
+/* Results */
+.wrap { max-width: 1140px; margin: 0 auto; padding: 0 16px 72px; }
+#status { margin: 32px 0 14px; color: var(--muted); font-size: 15px; }
+#status b { color: var(--cwc-blue); }
+.card { background: #fff; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; margin-bottom: 18px;
+        display: grid; grid-template-columns: minmax(240px, 340px) 1fr; }
+.media { position: relative; background: #000; aspect-ratio: 16/9; cursor: pointer; }
+.media img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.media iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.media .play { position: absolute; inset: 0; display: grid; place-items: center; }
+.media .play span { background: var(--cwc-navy); color: #fff; padding: 8px 16px; border-radius: 50px; font-weight: 700; font-size: 14px; }
+.media:hover .play span { background: var(--cwc-sky); }
+.card.open { grid-template-columns: 1fr; }
+.body { padding: 16px 20px 18px; min-width: 0; }
+.title { color: var(--cwc-blue); font-weight: 700; font-size: 20px; line-height: 1.3; margin: 0 0 4px; }
+.meta { color: var(--muted); font-size: 14px; margin-bottom: 8px; }
+.snip { font-size: 15px; margin: 6px 0 12px; }
+mark { background: var(--mark); color: inherit; border-radius: 3px; padding: 0 2px; }
+.ref { display: inline-block; background: var(--cwc-green); color: #fff; font-weight: 700; font-size: 12px; border-radius: 50px; padding: 1px 10px; margin-right: 6px; }
+.moments { display: flex; flex-wrap: wrap; gap: 6px; }
+.moments button { font: inherit; font-size: 13px; font-weight: 600; border: 1px solid var(--line); background: var(--soft); color: var(--ink);
+                  border-radius: 50px; padding: 3px 12px; cursor: pointer; font-variant-numeric: tabular-nums; min-height: 28px; }
+.moments button.on, .moments button:hover { background: var(--cwc-navy); border-color: var(--cwc-navy); color: #fff; }
+.yt { font-size: 14px; color: var(--cwc-blue); text-decoration: none; font-weight: 600; margin-left: 6px; }
+.yt:hover { text-decoration: underline; }
+.empty { text-align: center; color: var(--muted); padding: 40px 0; }
+@media (max-width: 760px) { .card { grid-template-columns: 1fr; } }
+
+/* Info strip, like the Service Times / Location / Contact row on their home page */
+.info { border-top: 1px solid var(--line); padding: 40px 0; }
+.info .inner { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+.info h3 { color: var(--cwc-blue); font-size: 25px; font-weight: 700; margin: 0 0 6px; }
+.info p { margin: 0; }
+.info div + div { border-left: 1px solid var(--cwc-blue); padding-left: 24px; }
+@media (max-width: 760px) { .info .inner { grid-template-columns: 1fr; } .info div + div { border-left: 0; padding-left: 0; } }
+
+/* Footer */
+footer { background: var(--footer); color: #fff; }
+footer .cols { display: grid; grid-template-columns: 1.3fr 1fr 1fr 1fr; gap: 24px; padding: 48px 16px 32px; }
+footer h4 { font-size: 14px; letter-spacing: .08em; text-transform: uppercase; margin: 0 0 10px; font-weight: 700; }
+footer ul { list-style: none; margin: 0; padding: 0; }
+footer li a, footer .social a { color: #fff; text-decoration: none; line-height: 2; }
+footer li a:hover, footer .social a:hover { text-decoration: underline; }
+footer .social { display: flex; flex-wrap: wrap; gap: 4px 16px; margin-top: 12px; font-weight: 600; font-size: 14px; }
+footer .base { background: var(--footer-deep); font-size: 13px; padding: 14px 0; }
+@media (max-width: 760px) { footer .cols { grid-template-columns: 1fr 1fr; } footer .cols > :first-child { grid-column: 1 / -1; } }
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="inner">
+    <a class="brand" href="https://collegewes.com/"><img src="cwc-logo.webp" alt="" width="45" height="45"><span>College Wesleyan<br>Church</span></a>
+    <ul class="nav">
+      <li><a href="https://collegewes.com/newhere/about/">New Here</a></li>
+      <li><a href="https://collegewes.com/worship-2/">Worship</a></li>
+      <li><a href="/" aria-current="page">Sermons</a></li>
+      <li><a href="https://collegewes.com/meet/">Meet</a></li>
+      <li><a href="https://collegewes.com/serve/">Serve</a></li>
+      <li><a href="https://collegewes.com/outreach/">Go</a></li>
+      <li><a href="https://collegewes.com/resources/">Resources</a></li>
+      <li><a href="https://collegewes.com/give/">Give</a></li>
+    </ul>
+    <details class="menu">
+      <summary>Menu</summary>
+      <ul>
+        <li><a href="https://collegewes.com/newhere/about/">New Here</a></li>
+        <li><a href="https://collegewes.com/worship-2/">Worship</a></li>
+        <li><a href="/" aria-current="page">Sermons</a></li>
+        <li><a href="https://collegewes.com/meet/">Meet</a></li>
+        <li><a href="https://collegewes.com/serve/">Serve</a></li>
+        <li><a href="https://collegewes.com/outreach/">Go</a></li>
+        <li><a href="https://collegewes.com/resources/">Resources</a></li>
+        <li><a href="https://collegewes.com/give/">Give</a></li>
+      </ul>
+    </details>
+  </div>
+</header>
+<section class="hero">
+  <div class="inner">
+    <h1>Sermon Library</h1>
+    <p id="lede">Search any verse, word, idea, or date and jump to the moment it's preached.</p>
+    <form id="f" role="search">
+      <input type="search" id="q" aria-label="Search sermons" placeholder='Try "Ezekiel 4:9", forgiveness, or March 2024' autofocus autocomplete="off">
+      <button>Search</button>
+    </form>
+    <div class="row" id="examples"></div>
+    <div class="row dates">
+      <label for="from">From</label><input type="date" id="from"><label for="to">to</label><input type="date" id="to">
+    </div>
+  </div>
+</section>
+<main class="wrap">
+  <div id="status" role="status"></div>
+  <div id="results"></div>
+</main>
+<section class="info">
+  <div class="inner">
+    <div><h3>Service Times</h3><p>Sundays | 9:15am &amp; 10:45am</p></div>
+    <div><h3>Location</h3><p>200 E 38th, Marion, IN 46953</p></div>
+    <div><h3>Contact</h3><p>765.674.8541 | <a href="mailto:info@collegewes.com">info@collegewes.com</a></p></div>
+  </div>
+</section>
+<footer>
+  <div class="inner cols">
+    <div>
+      <a class="brand" href="https://collegewes.com/"><img src="cwc-logo.webp" alt="" width="45" height="45"><span>College Wesleyan<br>Church</span></a>
+      <div class="social">
+        <a href="https://www.facebook.com/collegewes">Facebook</a>
+        <a href="https://www.instagram.com/collegewesleyan/">Instagram</a>
+        <a href="https://www.youtube.com/c/CollegeWesleyanChurch">YouTube</a>
+        <a href="https://open.spotify.com/artist/3f08Gi7EuLr7HpP40Q8Ky5">Spotify</a>
+      </div>
+    </div>
+    <div><h4>Navigation</h4><ul>
+      <li><a href="https://collegewes.com/nextsteps/">Next Steps</a></li>
+      <li><a href="https://collegewes.com/outreach/">Outreach</a></li>
+      <li><a href="https://collegewes.com/resources/">Resources</a></li></ul></div>
+    <div><h4>Ministries</h4><ul>
+      <li><a href="https://collegewes.com/splash/">Children</a></li>
+      <li><a href="https://collegewes.com/jcb/">Youth</a></li>
+      <li><a href="https://collegewes.com/youngadult/">Young Adult</a></li>
+      <li><a href="https://collegewes.com/discipleship/">Discipleship</a></li>
+      <li><a href="https://collegewes.com/care/">Care</a></li></ul></div>
+    <div><h4>More</h4><ul>
+      <li><a href="https://collegewes.com/give/">Give</a></li>
+      <li><a href="https://collegewes.com/employment/">Job Listings</a></li>
+      <li><a href="https://collegewes.churchcenter.com/home">My CWC</a></li></ul></div>
+  </div>
+  <div class="base"><div class="inner">© College Wesleyan Church · Marion, Indiana</div></div>
+</footer>
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const clock = t => { t = Math.max(0, t|0); const h = t/3600|0, m = (t%3600)/60|0, s = t%60;
+  return (h ? h + ":" + String(m).padStart(2,"0") : m) + ":" + String(s).padStart(2,"0"); };
+const fmtDate = d => d ? new Date(d + "T12:00:00").toLocaleDateString(undefined, {year:"numeric", month:"long", day:"numeric"}) : "";
+const examples = ["Ezekiel 4:9", "Psalm 23", "John 3:16", "forgiveness", "\"prodigal son\"", "hope in suffering", "2024"];
+$("#examples").innerHTML = examples.map(e => `<button class="chip" type="button">${esc(e)}</button>`).join("");
+$("#examples").onclick = e => { if (e.target.matches(".chip")) { $("#q").value = e.target.textContent; run(); } };
+
+function highlight(text, query) {
+  const words = (query.match(/[\w']+/g) || []).filter(w => w.length > 2 && !/^\d+$/.test(w));
+  let out = esc(text);
+  for (const w of words) {
+    const stem = w.toLowerCase().replace(/(ing|ed|es|s|ness)$/, "").slice(0, 6);
+    if (stem.length < 3) continue;
+    out = out.replace(new RegExp(`\\b(${stem.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}[\\w']*)`, "gi"), "<mark>$1</mark>");
+  }
+  return out;
+}
+
+function card(r, query) {
+  const best = r.moments[0];
+  const refs = r.kind === "scripture" && best ? `<span class="ref">${esc(best.label)}</span>` : "";
+  const cited = (r.cited_in || []).length && !r.moments.length ? `<div class="meta">Cited in the ${esc(r.cited_in[0])}</div>` : "";
+  const moments = r.moments.length > 1 ? `<div class="moments">${r.moments.map((m, i) =>
+      `<button data-t="${m.t}" class="${i ? "" : "on"}" title="${esc(m.label || "")}">${clock(m.t)}${m.label && r.kind === "scripture" ? " · " + esc(m.label) : ""}</button>`).join("")}</div>` : "";
+  return `<article class="card" data-id="${esc(r.id)}" data-t="${r.start}">
+    <div class="media"><img loading="lazy" src="${esc(r.thumbnail)}" alt="">
+      <div class="play"><span>▶ Play from ${clock(r.start)}</span></div></div>
+    <div class="body">
+      <h2 class="title">${esc(r.title)}</h2>
+      <div class="meta">${fmtDate(r.date)}${r.duration ? " · " + Math.round(r.duration / 60) + " min" : ""}
+        <a class="yt" target="_blank" rel="noopener" href="https://www.youtube.com/watch?v=${esc(r.id)}&t=${r.start}s">Open on YouTube ↗</a></div>
+      ${best ? `<div class="snip">${refs}${highlight(best.snippet || "", query)}</div>` : ""}
+      ${cited}${moments}
+    </div></article>`;
+}
+
+function play(cardEl, t) {
+  cardEl.dataset.t = t;
+  cardEl.classList.add("open");
+  cardEl.querySelector(".media").innerHTML =
+    `<iframe allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen
+      src="https://www.youtube-nocookie.com/embed/${cardEl.dataset.id}?start=${t}&autoplay=1&rel=0"></iframe>`;
+  const a = cardEl.querySelector(".yt"); a.href = `https://www.youtube.com/watch?v=${cardEl.dataset.id}&t=${t}s`;
+}
+$("#results").onclick = e => {
+  const c = e.target.closest(".card"); if (!c) return;
+  const b = e.target.closest(".moments button");
+  if (b) { c.querySelectorAll(".moments button").forEach(x => x.classList.toggle("on", x === b)); return play(c, +b.dataset.t); }
+  if (e.target.closest(".media") && !c.querySelector("iframe")) play(c, +c.dataset.t);
+};
+
+async function run(push = true) {
+  const q = $("#q").value.trim(), from = $("#from").value, to = $("#to").value;
+  if (!q && !from && !to) return;
+  const p = new URLSearchParams({ q }); if (from) p.set("from", from); if (to) p.set("to", to);
+  if (push) history.replaceState(null, "", "?" + p);
+  $("#status").textContent = "Searching…";
+  const res = await fetch("/api/search?" + p).then(r => r.json()).catch(e => ({ error: String(e) }));
+  if (res.error) { $("#status").textContent = res.error; $("#results").innerHTML = ""; return; }
+  const noun = res.count === 1 ? "sermon" : "sermons";
+  const what = res.scripture ? `${noun} citing <b>${esc(res.scripture)}</b>` : `${noun} for <b>${esc(q || "that date range")}</b>`;
+  const range = res.date_range ? ` · ${esc(res.date_range[0])} to ${esc(res.date_range[1])}` : "";
+  $("#status").innerHTML = `${res.count} ${what}${range}`;
+  $("#results").innerHTML = res.results.map(r => card(r, q)).join("") ||
+    `<div class="empty">Nothing yet. Try a broader word, a chapter instead of a verse, or clear the dates.</div>`;
+}
+$("#f").onsubmit = e => { e.preventDefault(); run(); };
+$("#from").onchange = $("#to").onchange = () => run();
+
+const init = new URLSearchParams(location.search);
+if (init.get("q") || init.get("from")) { $("#q").value = init.get("q") || ""; $("#from").value = init.get("from") || ""; $("#to").value = init.get("to") || ""; run(false); }
+fetch("/api/stats").then(r => r.json()).then(s => {
+  if (s.videos != null) document.querySelector("#lede").textContent =
+    `${s.videos} sermons · ${s.hours} hours · ${s.first ? fmtDate(s.first) + " to " + fmtDate(s.last) : ""}. Search any verse, word, idea, or date.`;
+}).catch(() => {});
+</script>
+</body>
+</html>
