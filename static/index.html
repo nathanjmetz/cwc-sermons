@@ -460,7 +460,7 @@ const clock = t => { t = Math.max(0, t|0); const h = t/3600|0, m = (t%3600)/60|0
   return (h ? h + ":" + String(m).padStart(2,"0") : m) + ":" + String(s).padStart(2,"0"); };
 const fmtDate = d => d ? new Date(d + "T12:00:00").toLocaleDateString(undefined, {year:"numeric", month:"long", day:"numeric"}) : "";
 // "Sermon | Ordinary Time | 10.18.26" -> "Ordinary Time"; other titles unchanged
-const niceTitle = t => { let p = (t || "").split("|").map(s => s.trim());
+const niceTitle = t => { let p = (t || "").split(/\s[|-]\s|\|/).map(s => s.trim());
   if (p.length < 2 || !/^(sermon|service)$/i.test(p[0])) return t;
   p = p.slice(1); if (p.length > 1 && /\d{1,2}[.\/-]\d{1,2}[.\/-]\d{2,4}/.test(p[p.length - 1])) p.pop();
   return p.join(" · "); };

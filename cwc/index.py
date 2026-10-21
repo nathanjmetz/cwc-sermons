@@ -163,7 +163,7 @@ def date_of(info):
 
 def kind_of(title):
     """'sermon' / 'service' from titles like "Sermon | Ordinary Time | 10.18.26"; else None."""
-    first = (title or "").split("|")[0].strip().lower()
+    first = re.split(r"\s[|-]\s", (title or "").strip(), maxsplit=1)[0].strip().lower()
     return first if first in ("sermon", "service") else None
 
 
@@ -189,6 +189,9 @@ def skip_duplicate_sermons(infos, has_words):
         d, name = day(i), _name(i.get("title"))
         if any(sd == d or (name and sn == name and sd and abs((sd - d).days) <= 3) for sd, sn in services):
             skip.add(i["id"])
+    # the other way round: a service with no transcript adds nothing when its sermon cut is there
+    sermons = {day(i) for i in infos if kind_of(i.get("title")) == "sermon" and i["id"] not in skip and day(i)}
+    skip |= {i["id"] for i in infos if kind_of(i.get("title")) == "service" and not has_words(i["id"]) and day(i) in sermons}
     return skip
 
 

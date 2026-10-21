@@ -108,7 +108,7 @@ def test_full_service_replaces_sermon_cut(tmp_path):
               "SERMON00002": ("Sermon | The Second Call | Ordinary Time | 06-02-24", "20240603"),
               "SERVICE0003": ("Service | The Second Call", "20240602"),             # no date in title: match by name
               "SERMON00003": ("Sermon | Advent | 12.1.24", "20241202"),
-              "SERVICE0004": ("Service | Advent | 12.1.24", "20241201"),            # no transcript: sermon stays
+              "SERVICE0004": ("Service | Advent | 12.1.24", "20241201"),            # no transcript: sermon stays, service goes
               "SERMON00004": ("Sermon | Ordinary Time | 10.25.26", "20261026"),    # next week's sermon: keep
               "SPECIAL0001": ("Night of Worship", "20261019")}
     for vid, (title, up) in videos.items():
@@ -119,6 +119,6 @@ def test_full_service_replaces_sermon_cut(tmp_path):
     index.build(db, raw, verbose=False)
     con = search.connect(db)
     ids = {r[0] for r in con.execute("SELECT id FROM videos")}
-    assert ids == {"SERVICE0001", "SERVICE0002", "SERVICE0003", "SERMON00003", "SERVICE0004", "SERMON00004", "SPECIAL0001"}
+    assert ids == {"SERVICE0001", "SERVICE0002", "SERVICE0003", "SERMON00003", "SERMON00004", "SPECIAL0001"}
     dates = dict(con.execute("SELECT id, date FROM videos"))
     assert dates["SERVICE0001"] == "2026-10-18" and dates["SERVICE0002"] == "2018-01-07"
