@@ -187,7 +187,8 @@ mark { background: var(--mark); color: inherit; border-radius: 3px; padding: 0 2
 .main { display: flex; flex-direction: column; --chrome: 238px; }
 .sermon { padding: 6px 28px 0; flex: 1 0 auto; display: flex; flex-direction: column; }
 .sgrid { display: grid; gap: 20px; margin-top: 14px; }
-.stage { width: 100%; max-width: max(520px, calc((100dvh - var(--bar) - var(--chrome)) * 16 / 9)); margin-inline: auto; }
+/* one column (both panels open on a mid-size screen): leave ~220px under the video so the moments show without scrolling */
+.stage { width: 100%; max-width: max(520px, calc((100dvh - var(--bar) - var(--chrome) - 220px) * 16 / 9)); margin-inline: auto; }
 .side { min-width: 0; }
 .side .card { margin-top: 0; }
 /* wide: video and side card share a row that runs down to the ticker; the card scrolls inside */
