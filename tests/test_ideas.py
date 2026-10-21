@@ -39,3 +39,33 @@ def test_ideas(tmp_path, monkeypatch):
     times = [i * 5 for i in range(300)]  # one word every half second, 150s
     ps = orig(words, times)
     assert ps[0][0] == 0 and ps[1][0] == 300 and all(p[1] - p[0] < 600 for p in ps)
+
+
+def test_jev_rerank(tmp_path, monkeypatch):
+    """Jev's judgment reorders sermons; with no key, or on error, search runs as before."""
+    from cwc import rerank
+    build(tmp_path)
+    monkeypatch.setattr(embed, "VECTORS", tmp_path / "vectors.i8")
+    monkeypatch.setattr(embed, "PASSAGES", tmp_path / "passages.json")
+    monkeypatch.setattr(embed, "passages_for", lambda w, t: [(t[0], t[-1], " ".join(w))] if w else [])
+    embed.build(tmp_path / "s.db", tmp_path, encoder=toy)
+    con = search.connect(tmp_path / "s.db")
+    q = "a father welcoming his lost child back"
+    monkeypatch.setattr(rerank, "api_key", lambda: None)
+    plain = search.search_ideas(con, q, None, 10, encode=toy)
+    assert plain[0]["id"] == "BBBBBBBBBBB" and "jev" not in plain[0]
+
+    sent = []
+    def fake_call(key, query, texts, timeout):
+        sent.append(len(texts))
+        return [0.9 if "shepherd" in t.lower() else 0.02 for t in texts]
+    monkeypatch.setattr(rerank, "api_key", lambda: "test")
+    monkeypatch.setattr(rerank, "_call", fake_call)
+    judged = search.search_ideas(con, q, None, 10, encode=toy)
+    assert sent and judged[0]["jev"] == 0.9 and judged[0]["id"] != "BBBBBBBBBBB"
+    assert all("_s" not in m for r in judged for m in r["moments"])
+
+    def boom(*a):
+        raise OSError("down")
+    monkeypatch.setattr(rerank, "_call", boom)
+    assert [r["id"] for r in search.search_ideas(con, q, None, 10, encode=toy)] == [r["id"] for r in plain]

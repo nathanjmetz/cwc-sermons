@@ -237,7 +237,7 @@ def browse_dates(con, rng, limit):
     return [{**dict(r), "score": 0, "start": 0, "moments": [], "kind": "date"} for r in rows]
 
 
-def search(con, q, limit=20, date_from=None, date_to=None, mode="words"):
+def search(con, q, limit=20, date_from=None, date_to=None, mode="words", jev=True):
     q = (q or "").strip()
     text, rng = extract_dates(q)
     if date_from or date_to:
@@ -245,7 +245,7 @@ def search(con, q, limit=20, date_from=None, date_to=None, mode="words"):
     info = {"query": q, "date_range": rng, "scripture": None}
     info["mode"] = mode
     if mode == "ideas" and text:
-        return {**info, **_count(search_ideas(con, text, rng, limit))}
+        return {**info, **_count(search_ideas(con, text, rng, limit, use_jev=jev))}
     ref = parse_query_ref(text) if text else None
     if ref:
         # Anything left after the reference ("Romans 8 suffering") narrows by words too.
@@ -309,11 +309,52 @@ def _refine(words, times, s_ds, e_ds, qvec, encode):
     return subs[int((encode([t for _, t in subs]) @ qvec).argmax())][0]
 
 
-def search_ideas(con, q, rng, limit, encode=None, refine=8):
-    """Rank sermons by how close any one-minute passage comes to the meaning of q."""
+JEV_POOL = 30      # sermons gathered for Jev to judge
+JEV_PASSAGES = 60  # passages sent per search (two calls of 30)
+
+
+def _jev_rerank(con, q, results):
+    """Blend Jev's 'does this passage address the query' probability into scores."""
+    from . import embed, rerank
+    picks = []
+    for r in sorted(results.values(), key=lambda r: -r["score"]):
+        for m in sorted(r["moments"], key=lambda m: -m["score"])[:2]:
+            picks.append((r, m))
+    picks = picks[:JEV_PASSAGES]
+    words = {}
+    texts = []
+    for r, m in picks:
+        if r["id"] not in words:
+            words[r["id"]] = embed.video_words(con, r["id"])
+        w, t = words[r["id"]]
+        texts.append(" ".join(x for x, y in zip(w, t) if m["_s"] <= y <= m["_e"]))
+    probs = rerank.rerank(q, texts)
+    if probs is None:
+        return
+    judged = {id(m) for _, m in picks}
+    for (r, m), p in zip(picks, probs):
+        m["jev"] = round(p, 3)
+        m["score"] = 0.75 * p + 0.25 * m["score"]
+    for r in results.values():
+        # unjudged moments rank below judged ones; near-misses go when better ones remain
+        for m in r["moments"]:
+            if id(m) not in judged:
+                m["score"] *= 0.25
+        keep = [m for m in r["moments"] if m.get("jev", 1) >= 0.05]
+        r["moments"] = keep or r["moments"][:1]
+        r["score"] = round(max(m["score"] for m in r["moments"]), 4) if r["moments"] else 0
+        r["jev"] = max((m.get("jev", 0) for m in r["moments"]), default=0)
+
+
+def search_ideas(con, q, rng, limit, encode=None, refine=8, use_jev=True):
+    """Rank sermons by how close any one-minute passage comes to the meaning of q.
+    With a Jev key, a wider pool is re-judged passage by passage before trimming."""
     import numpy as np
-    from . import embed
+    from . import embed, rerank
     encode = encode or embed.encode
+    final, jev = limit, use_jev and rerank.api_key()
+    if jev:
+        limit = max(limit, JEV_POOL)
     meta, vecs = _vectors()
     qvec = encode([q], query=True)[0]
     sims = (vecs.astype(np.float32) @ qvec) / 127.0
@@ -339,7 +380,9 @@ def search_ideas(con, q, rng, limit, encode=None, refine=8):
     for r in results.values():
         # sermons that stay on the idea for several minutes edge out a single passing mention
         r["score"] = round(r["score"] + 0.01 * min(r.pop("_n") - 1, 5), 4)
-    out = _finish(results, limit)
+    if jev:
+        _jev_rerank(con, q, results)
+    out = _finish(results, final)
     for i, r in enumerate(out):
         words, times = embed.video_words(con, r["id"])
         for j, m in enumerate(r["moments"]):
