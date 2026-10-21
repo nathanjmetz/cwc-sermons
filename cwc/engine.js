@@ -214,10 +214,13 @@
     }
     progress("");
   }
-  async function embed(texts) {
+  // the model can only run one batch at a time, so calls wait their turn
+  let queue = Promise.resolve();
+  const embed = texts => (queue = queue.catch(() => {}).then(() => embedNow(texts)));
+  async function embedNow(texts) {
     const out = await extractor(texts, { pooling: "cls", normalize: true });
     const d = out.dims[1];
-    return texts.map((_, i) => out.data.subarray(i * d, (i + 1) * d));
+    return texts.map((_, i) => out.data.slice(i * d, (i + 1) * d));
   }
   async function jevRerank(q, results) {
     if (!JEV.startsWith("https://")) return;
