@@ -12,6 +12,7 @@ import json
 import os
 import re
 import sqlite3
+from collections import Counter
 from pathlib import Path
 
 from .scripture import find_refs, find_verse_only
@@ -173,6 +174,23 @@ def skip_duplicate_services(infos):
                     for td in [title_date(i.get("title"))] if td}
     return {i["id"] for i in infos if kind_of(i.get("title")) == "service"
             and title_date(i.get("title")) in sermon_dates}
+
+
+def video_words(con, vid):
+    """The transcript as (words, deciseconds), each word once. Chunks are
+    overlapping windows, so each chunk's shared prefix with the previous one is skipped."""
+    words, times, prev = [], [], Counter()
+    for r in con.execute("SELECT text, times FROM chunks WHERE video_id=? ORDER BY start", (vid,)):
+        pairs = list(zip(r[0].split(), (int(x) for x in r[1].split(",")))) if r[1] else []
+        seen, k = prev.copy(), 0
+        while k < len(pairs) and seen[pairs[k]] > 0:
+            seen[pairs[k]] -= 1
+            k += 1
+        for w, t in pairs[k:]:
+            words.append(w)
+            times.append(t)
+        prev = Counter(pairs)
+    return words, times
 
 
 def build(db_path=DB, raw_dir=RAW, verbose=True):

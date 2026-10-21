@@ -8,28 +8,31 @@
 <link rel="icon" href="cwc-logo.webp">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700;800&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500&display=swap" rel="stylesheet">
 <style>
 /* Colors and type taken from collegewes.com (Elementor globals + computed styles, 2026-10-21).
    Their site is light-only, so this page is too. */
 :root {
-  --cwc-sky: #0099CC;      /* top bar */
+  --cwc-sky: #007CA6;      /* top bar: their #0099CC darkened just enough for white text to pass WCAG AA (4.7:1) */
   --cwc-blue: #005A9E;     /* headings, links */
-  --cwc-navy: #1A3368;     /* pill buttons, hero */
+  --cwc-navy: #1A3368;     /* pill buttons, rail */
   --cwc-green: #70BF44;    /* accent */
   --ink: #333333; --muted: #54595F; --line: #E2E5E9; --bg: #FFFFFF; --soft: #F3F6F9;
   --footer: #54595F; --footer-deep: #43464C; --mark: #FFF1A8;
+  --bar: 64px; --rail: 330px; --list: 380px;
 }
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 html { color-scheme: light; }
 body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.6 "Open Sans", system-ui, sans-serif; }
 a { color: var(--cwc-blue); }
+button { font: inherit; }
 :focus-visible { outline: 3px solid var(--cwc-green); outline-offset: 2px; }
 .inner { max-width: 1140px; margin: 0 auto; padding: 0 16px; }
 
 /* Top bar */
-.topbar { background: var(--cwc-sky); color: #fff; position: sticky; top: 0; z-index: 10; }
-.topbar .inner { display: flex; align-items: center; gap: 16px; min-height: 64px; }
+.topbar { background: var(--cwc-sky); color: #fff; position: sticky; top: 0; z-index: 20; height: var(--bar); }
+.topbar .inner { display: flex; align-items: center; gap: 16px; height: 100%; max-width: none; padding: 0 24px; }
 .brand { display: flex; align-items: center; gap: 10px; color: #fff; text-decoration: none; font-weight: 700; }
 .brand img { width: 45px; height: 45px; display: block; }
 .brand span { font-size: 15px; line-height: 1.2; }
@@ -38,79 +41,165 @@ a { color: var(--cwc-blue); }
 .nav a:hover { background: rgba(255,255,255,.15); }
 .nav a[aria-current] { background: #fff; color: var(--cwc-blue); }
 .menu { display: none; margin-left: auto; }
-.menu summary { list-style: none; cursor: pointer; color: #fff; font-weight: 700; padding: 8px 14px; border: 2px solid #fff; border-radius: 50px; }
+.menu summary { list-style: none; cursor: pointer; color: #fff; font-weight: 700; padding: 6px 14px; border: 2px solid #fff; border-radius: 50px; }
 .menu summary::-webkit-details-marker { display: none; }
-.menu ul { position: absolute; right: 16px; top: 60px; background: #fff; list-style: none; margin: 0; padding: 8px 0; min-width: 200px;
+.menu ul { position: absolute; right: 16px; top: 58px; background: #fff; list-style: none; margin: 0; padding: 8px 0; min-width: 200px;
            border-radius: 6px; box-shadow: 0 10px 30px rgba(0,0,0,.18); }
 .menu ul a { display: block; padding: 10px 18px; color: var(--ink); text-decoration: none; font-weight: 600; }
 .menu ul a[aria-current] { color: var(--cwc-blue); }
 @media (max-width: 1020px) { .nav { display: none; } .menu { display: block; } }
 
-/* Hero */
-.hero { background: var(--cwc-navy); color: #fff; text-align: center; padding: clamp(40px, 7vw, 88px) 0 clamp(36px, 6vw, 72px); }
-.hero h1 { font-weight: 800; font-size: clamp(34px, 6vw, 64px); line-height: 1.1; margin: 0 0 14px; letter-spacing: -.01em; }
-.hero p { margin: 0 auto 28px; max-width: 640px; font-size: clamp(16px, 2vw, 20px); color: rgba(255,255,255,.88); }
-form { display: flex; gap: 8px; max-width: 760px; margin: 0 auto; background: #fff; border-radius: 50px; padding: 6px; }
-form input[type=search] { flex: 1; min-width: 0; border: 0; background: transparent; color: var(--ink);
-       font: inherit; font-size: 18px; padding: 10px 18px; outline: none; border-radius: 50px; }
-form input[type=search]:focus-visible { outline: none; }
-form:focus-within { box-shadow: 0 0 0 3px var(--cwc-green); }
-form button { border: 0; background: var(--cwc-sky); color: #fff; font: inherit; font-weight: 700; padding: 0 28px; border-radius: 50px; cursor: pointer; }
-form button:hover { background: var(--cwc-blue); }
-.hero .row { justify-content: center; }
-.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 16px 0 0; }
-.chip { border: 1px solid rgba(255,255,255,.55); background: transparent; color: #fff; border-radius: 50px; padding: 5px 14px;
-        font: inherit; font-size: 14px; font-weight: 500; cursor: pointer; transition: background .15s ease-out; }
+/* Three panes: search rail | results column | sermon */
+.app { display: grid; grid-template-columns: var(--rail) 0 1fr; height: calc(100vh - var(--bar)); height: calc(100dvh - var(--bar));
+       transition: grid-template-columns .45s cubic-bezier(.2,.7,.2,1); }
+.app.has-results { grid-template-columns: var(--rail) var(--list) 1fr; }
+
+.rail { background: var(--cwc-navy); color: #fff; padding: 28px 22px; overflow-y: auto; }
+.rail h1 { font-weight: 800; font-size: 30px; line-height: 1.1; margin: 0 0 6px; }
+.rail .lede { color: rgba(255,255,255,.78); font-size: 14px; margin: 0 0 22px; }
+form { display: flex; flex-direction: column; gap: 10px; }
+textarea { width: 100%; resize: none; border: 0; border-radius: 14px; padding: 13px 16px; font: inherit; font-size: 16px; line-height: 1.45;
+           color: var(--ink); background: #fff; min-height: 52px; max-height: 220px; outline: none; }
+textarea:focus { box-shadow: 0 0 0 3px var(--cwc-green); }
+.mode { display: grid; grid-template-columns: 1fr 1fr; background: rgba(255,255,255,.12); border-radius: 50px; padding: 4px; }
+.mode button { border: 0; background: transparent; color: rgba(255,255,255,.85); font-weight: 700; font-size: 14px; padding: 7px 0; border-radius: 50px; cursor: pointer;
+               transition: background .2s, color .2s; }
+.mode button[aria-pressed=true] { background: #fff; color: var(--cwc-navy); }
+.hint { font-size: 13px; color: rgba(255,255,255,.72); margin: 0; min-height: 40px; }
+.go { border: 0; background: var(--cwc-sky); color: #fff; font-weight: 700; padding: 11px 0; border-radius: 50px; cursor: pointer; }
+.go:hover { background: var(--cwc-blue); }
+.rail h2 { font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: rgba(255,255,255,.6); margin: 26px 0 10px; font-weight: 700; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { border: 1px solid rgba(255,255,255,.4); background: transparent; color: #fff; border-radius: 50px; padding: 4px 12px;
+        font-size: 13px; cursor: pointer; text-align: left; transition: background .15s; }
 .chip:hover { background: rgba(255,255,255,.15); }
-.dates { color: rgba(255,255,255,.85); font-size: 14px; gap: 8px; }
-.dates input { font: inherit; font-size: 14px; background: #fff; color: var(--ink); border: 0; border-radius: 50px; padding: 4px 12px; }
+.dates { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.dates label { font-size: 12px; color: rgba(255,255,255,.7); display: grid; gap: 3px; }
+.dates input { font: inherit; font-size: 13px; background: #fff; color: var(--ink); border: 0; border-radius: 8px; padding: 5px 8px; width: 100%; }
+.stats { margin-top: 26px; font-size: 13px; color: rgba(255,255,255,.6); }
 
-/* Results */
-.wrap { max-width: 1140px; margin: 0 auto; padding: 0 16px 72px; }
-#status { margin: 32px 0 14px; color: var(--muted); font-size: 15px; }
-#status b { color: var(--cwc-blue); }
-.card { background: #fff; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; margin-bottom: 18px;
-        display: grid; grid-template-columns: minmax(240px, 340px) 1fr; }
-.media { position: relative; background: #000; aspect-ratio: 16/9; cursor: pointer; }
-.media img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.media iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
-.media .play { position: absolute; inset: 0; display: grid; place-items: center; }
-.media .play span { background: var(--cwc-navy); color: #fff; padding: 8px 16px; border-radius: 50px; font-weight: 700; font-size: 14px; }
-.media:hover .play span { background: var(--cwc-sky); }
-.card.open { grid-template-columns: 1fr; }
-.body { padding: 16px 20px 18px; min-width: 0; }
-.title { color: var(--cwc-blue); font-weight: 700; font-size: 20px; line-height: 1.3; margin: 0 0 4px; }
-.meta { color: var(--muted); font-size: 14px; margin-bottom: 8px; }
-.snip { font-size: 15px; margin: 6px 0 12px; }
+.list { background: var(--soft); border-right: 1px solid var(--line); overflow: hidden; display: flex; flex-direction: column; min-width: 0; }
+.list .status { padding: 18px 18px 10px; font-size: 14px; color: var(--muted); border-bottom: 1px solid var(--line); background: var(--soft); }
+.list .status b { color: var(--cwc-blue); }
+#results { overflow-y: auto; padding: 10px; flex: 1; }
+.item { display: grid; grid-template-columns: 104px 1fr; gap: 11px; padding: 10px; border-radius: 10px; cursor: pointer; border: 1px solid transparent;
+        background: #fff; margin-bottom: 8px; text-align: left; width: 100%; color: inherit;
+        opacity: 0; transform: translateX(-10px); animation: in .35s ease-out forwards; }
+@keyframes in { to { opacity: 1; transform: none; } }
+.item:hover { border-color: #c9d6e3; }
+.item.on { border-color: var(--cwc-blue); box-shadow: 0 0 0 2px rgba(0,90,158,.15); }
+.item img { width: 104px; aspect-ratio: 16/9; object-fit: cover; border-radius: 6px; display: block; background: #ddd; }
+.item .t { font-weight: 700; font-size: 14px; line-height: 1.3; color: var(--cwc-blue); }
+.item .d { font-size: 12px; color: var(--muted); margin: 2px 0 4px; }
+.item .s { font-size: 12.5px; line-height: 1.45; color: var(--ink); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; grid-column: 1 / -1; }
+.item .n { font-size: 11.5px; font-weight: 700; color: var(--cwc-navy); }
+.ref { display: inline-block; background: var(--cwc-green); color: var(--cwc-navy); font-weight: 700; font-size: 11px; border-radius: 50px; padding: 0 8px; margin-right: 4px; }
+.match { display: inline-block; height: 5px; width: 40px; border-radius: 3px; background: var(--line); vertical-align: middle; margin-left: 4px; overflow: hidden; }
+.match i { display: block; height: 100%; background: var(--cwc-green); }
 mark { background: var(--mark); color: inherit; border-radius: 3px; padding: 0 2px; }
-.ref { display: inline-block; background: var(--cwc-green); color: #fff; font-weight: 700; font-size: 12px; border-radius: 50px; padding: 1px 10px; margin-right: 6px; }
-.moments { display: flex; flex-wrap: wrap; gap: 6px; }
-.moments button { font: inherit; font-size: 13px; font-weight: 600; border: 1px solid var(--line); background: var(--soft); color: var(--ink);
-                  border-radius: 50px; padding: 3px 12px; cursor: pointer; font-variant-numeric: tabular-nums; min-height: 28px; }
-.moments button.on, .moments button:hover { background: var(--cwc-navy); border-color: var(--cwc-navy); color: #fff; }
-.yt { font-size: 14px; color: var(--cwc-blue); text-decoration: none; font-weight: 600; margin-left: 6px; }
-.yt:hover { text-decoration: underline; }
-.empty { text-align: center; color: var(--muted); padding: 40px 0; }
-@media (max-width: 760px) { .card { grid-template-columns: 1fr; } }
+.empty { color: var(--muted); padding: 24px 12px; font-size: 14px; }
 
-/* Info strip, like the Service Times / Location / Contact row on their home page */
-.info { border-top: 1px solid var(--line); padding: 40px 0; }
-.info .inner { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
-.info h3 { color: var(--cwc-blue); font-size: 25px; font-weight: 700; margin: 0 0 6px; }
-.info p { margin: 0; }
-.info div + div { border-left: 1px solid var(--cwc-blue); padding-left: 24px; }
-@media (max-width: 760px) { .info .inner { grid-template-columns: 1fr; } .info div + div { border-left: 0; padding-left: 0; } }
+.main { overflow-y: auto; min-width: 0; }
+.welcome { max-width: 680px; margin: 0 auto; padding: 64px 32px; }
+.welcome h2 { color: var(--cwc-blue); font-size: 30px; font-weight: 800; margin: 0 0 12px; line-height: 1.2; }
+.welcome p { color: var(--muted); }
+.welcome ul { padding-left: 20px; color: var(--muted); }
+.welcome li { margin-bottom: 6px; }
+.sermon { max-width: 1000px; margin: 0 auto; padding: 24px 28px 48px; }
+.back { display: none; border: 0; background: none; color: var(--cwc-blue); font-weight: 700; padding: 0 0 10px; cursor: pointer; }
+.player { position: relative; aspect-ratio: 16/9; background: #000; border-radius: 10px; overflow: hidden; }
+.player iframe, .player > div { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.sermon h2 { color: var(--cwc-blue); font-size: 24px; font-weight: 800; line-height: 1.25; margin: 18px 0 2px; }
+.sermon .meta { color: var(--muted); font-size: 14px; }
+.sermon .meta a { font-weight: 600; text-decoration: none; margin-left: 8px; }
 
-/* Footer */
-footer { background: var(--footer); color: #fff; }
-footer .cols { display: grid; grid-template-columns: 1.3fr 1fr 1fr 1fr; gap: 24px; padding: 48px 16px 32px; }
-footer h4 { font-size: 14px; letter-spacing: .08em; text-transform: uppercase; margin: 0 0 10px; font-weight: 700; }
-footer ul { list-style: none; margin: 0; padding: 0; }
-footer li a, footer .social a { color: #fff; text-decoration: none; line-height: 2; }
-footer li a:hover, footer .social a:hover { text-decoration: underline; }
-footer .social { display: flex; flex-wrap: wrap; gap: 4px 16px; margin-top: 12px; font-weight: 600; font-size: 14px; }
-footer .base { background: var(--footer-deep); font-size: 13px; padding: 14px 0; }
-@media (max-width: 760px) { footer .cols { grid-template-columns: 1fr 1fr; } footer .cols > :first-child { grid-column: 1 / -1; } }
+/* Karaoke ticker: one line of the sermon gliding past, the spoken word lit */
+.ticker { position: relative; margin: 18px 0 6px; height: 74px; overflow: hidden; border-radius: 10px; background: var(--cwc-navy); }
+/* words fade out at both edges instead of being cut off */
+.lane { position: absolute; inset: 0; overflow: hidden;
+        -webkit-mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
+        mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent); }
+.track { position: absolute; top: 0; left: 0; height: 100%; display: flex; align-items: center; white-space: nowrap; will-change: transform;
+         font-family: "Source Serif 4", Georgia, serif; font-size: 30px; }
+.track span { padding: 0 .16em; color: rgba(255,255,255,.45); transition: color .5s ease, text-shadow .5s ease; }
+.track span.said { color: rgba(255,255,255,.88); }
+.track span.now { color: #fff; text-shadow: 0 0 18px rgba(112,191,68,.75); }
+.track span.hit { box-shadow: inset 0 -3px 0 var(--cwc-green); }
+.ticker .idle { position: absolute; inset: 0; display: grid; place-items: center; color: rgba(255,255,255,.6); font-size: 14px; }
+.tickerbar { display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: var(--muted); margin-bottom: 18px; }
+.tickerbar button { border: 1px solid var(--line); background: #fff; border-radius: 50px; padding: 3px 12px; cursor: pointer; color: var(--cwc-blue); font-weight: 600; font-size: 13px; }
+
+.sermon h3 { font-size: 13px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin: 22px 0 8px; font-weight: 700; }
+.moments { display: grid; gap: 8px; }
+.moment { display: grid; grid-template-columns: 64px 1fr; gap: 12px; align-items: start; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px;
+          background: #fff; cursor: pointer; text-align: left; color: inherit; transition: border-color .2s, background .2s; }
+.moment:hover { border-color: #c9d6e3; }
+.moment.on { border-color: var(--cwc-navy); background: #f7f9fc; }
+.moment .tm { font-weight: 800; color: var(--cwc-navy); font-variant-numeric: tabular-nums; }
+.moment .tx { font-size: 14px; line-height: 1.5; }
+.moment .best { font-size: 11px; font-weight: 700; color: var(--cwc-navy); background: var(--cwc-green); border-radius: 50px; padding: 0 8px; margin-left: 6px; }
+
+.full { margin-top: 10px; max-height: 420px; overflow-y: auto; border: 1px solid var(--line); border-radius: 10px; padding: 6px 20px;
+        font-family: "Source Serif 4", Georgia, serif; font-size: 17px; line-height: 1.75; scroll-behavior: smooth; }
+.full p { margin: 12px 0; color: #777; transition: color .6s ease; }
+.full p.cur { color: var(--ink); }
+.full p .ts { font-family: "Open Sans", sans-serif; font-size: 12px; font-weight: 700; color: var(--cwc-blue); margin-right: 8px; cursor: pointer; }
+.full p .w.now { background: var(--mark); border-radius: 3px; transition: background .3s; }
+
+footer { background: var(--footer); color: #fff; font-size: 13px; }
+footer .inner { display: flex; flex-wrap: wrap; gap: 6px 18px; padding: 14px 24px; max-width: none; }
+footer a { color: #fff; text-decoration: none; }
+footer a:hover { text-decoration: underline; }
+
+@media (max-width: 1100px) { :root { --rail: 290px; --list: 330px; } }
+/* Phone and small tablet: one pane at a time */
+@media (max-width: 860px) {
+  .app, .app.has-results { display: block; height: auto; }
+  .rail { padding: 22px 16px; }
+  .list { border-right: 0; }
+  .list:empty, .app:not(.has-results) .list { display: none; }
+  #results { overflow: visible; }
+  .main { display: none; }
+  .app.viewing .rail, .app.viewing .list { display: none; }
+  .app.viewing .main { display: block; }
+  .back { display: block; }
+  .sermon { padding: 16px; }
+  .welcome { display: none; }
+  .track { font-size: 24px; }
+}
+
+/* ---------- motion: quick for clicks (0.1–0.3s ease-out), up to 0.5s for big moves ---------- */
+:root { --ease: cubic-bezier(.2,.7,.2,1); }
+button, .chip, .item, .moment, .go, .nav a { transition: background-color .18s ease-out, color .18s ease-out, border-color .18s ease-out, box-shadow .18s ease-out, transform .12s ease-out; }
+button:active, .chip:active, .item:active, .moment:active { transform: scale(.98); }
+.mode { position: relative; }
+.mode::before { content: ""; position: absolute; top: 4px; bottom: 4px; left: 4px; width: calc(50% - 4px); background: #fff; border-radius: 50px;
+                transition: transform .25s var(--ease); }
+.mode.ideas::before { transform: translateX(100%); }
+.mode button { position: relative; z-index: 1; }
+.mode button[aria-pressed=true] { background: transparent; }
+.rail > * { animation: rise .6s var(--ease) both; }
+.rail > *:nth-child(2) { animation-delay: .05s; } .rail > *:nth-child(3) { animation-delay: .1s; }
+.rail > *:nth-child(n+4) { animation-delay: .15s; }
+.welcome { animation: rise .6s var(--ease) .1s both; }
+@keyframes rise { from { opacity: 0; transform: translateY(8px); } }
+.list .status { transition: color .2s ease-out; }
+.skel { height: 96px; border-radius: 10px; background: #e7ecf2; margin-bottom: 8px; animation: pulse 1.1s ease-in-out infinite alternate; }
+.skel:nth-child(2) { animation-delay: .15s; } .skel:nth-child(3) { animation-delay: .3s; } .skel:nth-child(4) { animation-delay: .45s; }
+@keyframes pulse { from { opacity: .55; } to { opacity: 1; } }
+.err { padding: 18px 12px; font-size: 14px; color: var(--ink); }
+.err button { margin-top: 10px; border: 0; background: var(--cwc-navy); color: #fff; border-radius: 50px; padding: 6px 16px; font-weight: 700; cursor: pointer; }
+.sermon { transition: opacity .3s ease-out, transform .3s var(--ease); }
+.sermon.swap { opacity: 0; transform: translateY(6px); }
+.moment { animation: rise .35s var(--ease) both; }
+.full { transition: opacity .3s ease-out; }
+.spin { display: inline-block; width: 12px; height: 12px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%;
+        animation: spin .7s linear infinite; vertical-align: -1px; margin-right: 6px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (min-width: 1800px) { :root { --rail: 360px; --list: 440px; } .sermon { max-width: 1280px; } .track { font-size: 34px; } .ticker { height: 84px; } }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-delay: 0s !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
+}
 </style>
 </head>
 <body>
@@ -120,7 +209,7 @@ footer .base { background: var(--footer-deep); font-size: 13px; padding: 14px 0;
     <ul class="nav">
       <li><a href="https://collegewes.com/newhere/about/">New Here</a></li>
       <li><a href="https://collegewes.com/worship-2/">Worship</a></li>
-      <li><a href="/" aria-current="page">Sermons</a></li>
+      <li><a href="./" aria-current="page">Sermons</a></li>
       <li><a href="https://collegewes.com/meet/">Meet</a></li>
       <li><a href="https://collegewes.com/serve/">Serve</a></li>
       <li><a href="https://collegewes.com/outreach/">Go</a></li>
@@ -132,7 +221,7 @@ footer .base { background: var(--footer-deep); font-size: 13px; padding: 14px 0;
       <ul>
         <li><a href="https://collegewes.com/newhere/about/">New Here</a></li>
         <li><a href="https://collegewes.com/worship-2/">Worship</a></li>
-        <li><a href="/" aria-current="page">Sermons</a></li>
+        <li><a href="./" aria-current="page">Sermons</a></li>
         <li><a href="https://collegewes.com/meet/">Meet</a></li>
         <li><a href="https://collegewes.com/serve/">Serve</a></li>
         <li><a href="https://collegewes.com/outreach/">Go</a></li>
@@ -142,71 +231,106 @@ footer .base { background: var(--footer-deep); font-size: 13px; padding: 14px 0;
     </details>
   </div>
 </header>
-<section class="hero">
-  <div class="inner">
+
+<div class="app" id="app">
+  <aside class="rail">
     <h1>Sermon Library</h1>
-    <p id="lede">Search any verse, word, idea, or date and jump to the moment it's preached.</p>
+    <p class="lede">Find the moment it was preached.</p>
     <form id="f" role="search">
-      <input type="search" id="q" aria-label="Search sermons" placeholder='Try "Ezekiel 4:9", forgiveness, or March 2024' autofocus autocomplete="off">
-      <button>Search</button>
-    </form>
-    <div class="row" id="examples"></div>
-    <div class="row dates">
-      <label for="from">From</label><input type="date" id="from"><label for="to">to</label><input type="date" id="to">
-    </div>
-  </div>
-</section>
-<main class="wrap">
-  <div id="status" role="status"></div>
-  <div id="results"></div>
-</main>
-<section class="info">
-  <div class="inner">
-    <div><h3>Service Times</h3><p>Sundays | 9:15am &amp; 10:45am</p></div>
-    <div><h3>Location</h3><p>200 E 38th, Marion, IN 46953</p></div>
-    <div><h3>Contact</h3><p>765.674.8541 | <a href="mailto:info@collegewes.com">info@collegewes.com</a></p></div>
-  </div>
-</section>
-<footer>
-  <div class="inner cols">
-    <div>
-      <a class="brand" href="https://collegewes.com/"><img src="cwc-logo.webp" alt="" width="45" height="45"><span>College Wesleyan<br>Church</span></a>
-      <div class="social">
-        <a href="https://www.facebook.com/collegewes">Facebook</a>
-        <a href="https://www.instagram.com/collegewesleyan/">Instagram</a>
-        <a href="https://www.youtube.com/c/CollegeWesleyanChurch">YouTube</a>
-        <a href="https://open.spotify.com/artist/3f08Gi7EuLr7HpP40Q8Ky5">Spotify</a>
+      <div class="mode" role="group" aria-label="Search mode">
+        <button type="button" data-mode="words" aria-pressed="true">Exact words</button>
+        <button type="button" data-mode="ideas" aria-pressed="false">Ideas</button>
       </div>
+      <textarea id="q" rows="1" aria-label="Search sermons" autocomplete="off"></textarea>
+      <p class="hint" id="hint"></p>
+      <button class="go">Search</button>
+    </form>
+    <h2>Try</h2>
+    <div class="chips" id="examples"></div>
+    <h2>Dates</h2>
+    <div class="dates">
+      <label>From<input type="date" id="from"></label>
+      <label>To<input type="date" id="to"></label>
     </div>
-    <div><h4>Navigation</h4><ul>
-      <li><a href="https://collegewes.com/nextsteps/">Next Steps</a></li>
-      <li><a href="https://collegewes.com/outreach/">Outreach</a></li>
-      <li><a href="https://collegewes.com/resources/">Resources</a></li></ul></div>
-    <div><h4>Ministries</h4><ul>
-      <li><a href="https://collegewes.com/splash/">Children</a></li>
-      <li><a href="https://collegewes.com/jcb/">Youth</a></li>
-      <li><a href="https://collegewes.com/youngadult/">Young Adult</a></li>
-      <li><a href="https://collegewes.com/discipleship/">Discipleship</a></li>
-      <li><a href="https://collegewes.com/care/">Care</a></li></ul></div>
-    <div><h4>More</h4><ul>
-      <li><a href="https://collegewes.com/give/">Give</a></li>
-      <li><a href="https://collegewes.com/employment/">Job Listings</a></li>
-      <li><a href="https://collegewes.churchcenter.com/home">My CWC</a></li></ul></div>
+    <div class="stats" id="stats"></div>
+  </aside>
+
+  <section class="list" aria-label="Results">
+    <div class="status" id="status" role="status" aria-live="polite"></div>
+    <div id="results"></div>
+  </section>
+
+  <main class="main" id="main">
+    <div class="welcome" id="welcome">
+      <h2>Every sermon, searchable to the second.</h2>
+      <p>Search on the left. Matching sermons line up in a column, and picking one opens it here, starting where the preacher gets to it.</p>
+      <ul>
+        <li><b>Exact words</b> finds what you remember hearing: a verse like <i>Ezekiel 4:9</i>, a phrase in quotes, a name, or a date like <i>March 2024</i>.</li>
+        <li><b>Ideas</b> finds what was meant, even in different words. Describe a theme or a whole situation, like <i>the woman at the well and how Jesus treated women</i>.</li>
+      </ul>
+    </div>
+    <article class="sermon" id="sermon" hidden>
+      <button class="back" id="back">← Results</button>
+      <div class="player"><div id="player"></div></div>
+      <h2 id="s-title"></h2>
+      <div class="meta" id="s-meta"></div>
+      <div class="ticker" id="ticker"><div class="lane"><div class="track" id="track"></div></div><div class="idle" id="idle">Transcript appears here as the sermon plays</div></div>
+      <div class="tickerbar"><span id="tickinfo"></span><button type="button" id="toggle-full">Read the transcript</button></div>
+      <div class="full" id="full" hidden></div>
+      <h3 id="m-head"></h3>
+      <div class="moments" id="moments"></div>
+    </article>
+  </main>
+</div>
+<footer>
+  <div class="inner">
+    <span>© College Wesleyan Church · 200 E 38th, Marion, IN 46953 · 765.674.8541</span>
+    <a href="https://www.facebook.com/collegewes">Facebook</a>
+    <a href="https://www.instagram.com/collegewesleyan/">Instagram</a>
+    <a href="https://www.youtube.com/c/CollegeWesleyanChurch">YouTube</a>
+    <a href="https://collegewes.com/give/">Give</a>
   </div>
-  <div class="base"><div class="inner">© College Wesleyan Church · Marion, Indiana</div></div>
 </footer>
+
 <script>
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const clock = t => { t = Math.max(0, t|0); const h = t/3600|0, m = (t%3600)/60|0, s = t%60;
   return (h ? h + ":" + String(m).padStart(2,"0") : m) + ":" + String(s).padStart(2,"0"); };
 const fmtDate = d => d ? new Date(d + "T12:00:00").toLocaleDateString(undefined, {year:"numeric", month:"long", day:"numeric"}) : "";
-const examples = ["Ezekiel 4:9", "Psalm 23", "John 3:16", "forgiveness", "\"prodigal son\"", "hope in suffering", "2024"];
-$("#examples").innerHTML = examples.map(e => `<button class="chip" type="button">${esc(e)}</button>`).join("");
-$("#examples").onclick = e => { if (e.target.matches(".chip")) { $("#q").value = e.target.textContent; run(); } };
+// "Sermon | Ordinary Time | 10.18.26" -> "Ordinary Time"; other titles unchanged
+const niceTitle = t => { const p = (t || "").split("|").map(s => s.trim()); return p.length >= 3 && /^(sermon|service)$/i.test(p[0]) ? p.slice(1, -1).join(" · ") : t; };
+const kindOf = t => /^\s*service\s*\|/i.test(t || "") ? "Full service" : "";
 
-function highlight(text, query) {
-  const words = (query.match(/[\w']+/g) || []).filter(w => w.length > 2 && !/^\d+$/.test(w));
+const MODES = {
+  words: { ph: 'A verse, phrase, or date: Ezekiel 4:9, "prodigal son", March 2024',
+           hint: "Finds the exact words. Put a phrase in quotes to keep the words together.",
+           ex: ["Ezekiel 4:9", "Leviticus 19", "forgiveness", '"the atonement"', "October 2026"] },
+  ideas: { ph: "Describe an idea, theme, or situation",
+           hint: "Finds what was meant, not just the words. Longer descriptions work well.",
+           ex: ["the woman at the well and how Jesus treated women", "how to forgive someone who betrayed you",
+                "doubt and faith in the middle of grief", "what holiness looks like in ordinary life", "God's heart for the poor"] },
+};
+let mode = "words", results = [], query = "", current = null, searchNo = 0;
+
+function setMode(m, focus = true) {
+  mode = m;
+  document.querySelectorAll(".mode button").forEach(b => b.setAttribute("aria-pressed", b.dataset.mode === m));
+  document.querySelector(".mode").classList.toggle("ideas", m === "ideas");
+  $("#q").placeholder = MODES[m].ph; $("#hint").textContent = MODES[m].hint;
+  $("#examples").innerHTML = MODES[m].ex.map(e => `<button class="chip" type="button">${esc(e)}</button>`).join("");
+  if (focus) $("#q").focus();
+}
+document.querySelector(".mode").onclick = e => { const b = e.target.closest("button"); if (b) { setMode(b.dataset.mode); if ($("#q").value.trim()) run(); } };
+$("#examples").onclick = e => { if (e.target.matches(".chip")) { $("#q").value = e.target.textContent; grow(); run(); } };
+const grow = () => { const q = $("#q"); q.style.height = "auto"; q.style.height = Math.min(q.scrollHeight, 220) + "px"; };
+$("#q").addEventListener("input", grow);
+$("#q").addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); run(); } });
+window.addEventListener("cwc-progress", e => { if (e.detail) $("#status").textContent = e.detail; });
+
+function highlight(text, q) {
+  if (mode === "ideas") return esc(text);
+  const words = (q.match(/[\w']+/g) || []).filter(w => w.length > 2 && !/^\d+$/.test(w));
   let out = esc(text);
   for (const w of words) {
     const stem = w.toLowerCase().replace(/(ing|ed|es|s|ness)$/, "").slice(0, 6);
@@ -215,63 +339,196 @@ function highlight(text, query) {
   }
   return out;
 }
+const strength = r => r.kind === "idea" ? `<span class="match" title="How close this is to your idea"><i style="width:${Math.round(Math.max(0, Math.min(1, (r.score - .45) / .35)) * 100)}%"></i></span>` : "";
 
-function card(r, query) {
+function item(r, i) {
   const best = r.moments[0];
-  const refs = r.kind === "scripture" && best ? `<span class="ref">${esc(best.label)}</span>` : "";
-  const cited = (r.cited_in || []).length && !r.moments.length ? `<div class="meta">Cited in the ${esc(r.cited_in[0])}</div>` : "";
-  const moments = r.moments.length > 1 ? `<div class="moments">${r.moments.map((m, i) =>
-      `<button data-t="${m.t}" class="${i ? "" : "on"}" title="${esc(m.label || "")}">${clock(m.t)}${m.label && r.kind === "scripture" ? " · " + esc(m.label) : ""}</button>`).join("")}</div>` : "";
-  return `<article class="card" data-id="${esc(r.id)}" data-t="${r.start}">
-    <div class="media"><img loading="lazy" src="${esc(r.thumbnail)}" alt="">
-      <div class="play"><span>▶ Play from ${clock(r.start)}</span></div></div>
-    <div class="body">
-      <h2 class="title">${esc(r.title)}</h2>
-      <div class="meta">${fmtDate(r.date)}${r.duration ? " · " + Math.round(r.duration / 60) + " min" : ""}
-        <a class="yt" target="_blank" rel="noopener" href="https://www.youtube.com/watch?v=${esc(r.id)}&t=${r.start}s">Open on YouTube ↗</a></div>
-      ${best ? `<div class="snip">${refs}${highlight(best.snippet || "", query)}</div>` : ""}
-      ${cited}${moments}
-    </div></article>`;
+  const ref = r.kind === "scripture" && best ? `<span class="ref">${esc(best.label)}</span>` : "";
+  const n = r.moments.length;
+  return `<button class="item" data-i="${i}" style="animation-delay:${Math.min(i, 12) * 35}ms">
+    <img loading="lazy" src="${esc(r.thumbnail)}" alt="">
+    <div><div class="t">${esc(niceTitle(r.title))}</div>
+      <div class="d">${fmtDate(r.date)}${kindOf(r.title) ? " · " + kindOf(r.title) : ""}</div>
+      <div class="n">${n > 1 ? n + " moments" : n ? "at " + clock(r.start) : ""}${strength(r)}</div></div>
+    ${best ? `<div class="s">${ref}${highlight(best.snippet || "", query)}</div>` :
+      (r.cited_in || []).length ? `<div class="s">Cited in the ${esc(r.cited_in[0])}</div>` : ""}
+  </button>`;
 }
-
-function play(cardEl, t) {
-  cardEl.dataset.t = t;
-  cardEl.classList.add("open");
-  cardEl.querySelector(".media").innerHTML =
-    `<iframe allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen
-      src="https://www.youtube-nocookie.com/embed/${cardEl.dataset.id}?start=${t}&autoplay=1&rel=0"></iframe>`;
-  const a = cardEl.querySelector(".yt"); a.href = `https://www.youtube.com/watch?v=${cardEl.dataset.id}&t=${t}s`;
-}
-$("#results").onclick = e => {
-  const c = e.target.closest(".card"); if (!c) return;
-  const b = e.target.closest(".moments button");
-  if (b) { c.querySelectorAll(".moments button").forEach(x => x.classList.toggle("on", x === b)); return play(c, +b.dataset.t); }
-  if (e.target.closest(".media") && !c.querySelector("iframe")) play(c, +c.dataset.t);
-};
+$("#results").onclick = e => { const b = e.target.closest(".item"); if (b) open(results[+b.dataset.i]); };
 
 async function run(push = true) {
-  const q = $("#q").value.trim(), from = $("#from").value, to = $("#to").value;
-  if (!q && !from && !to) return;
-  const p = new URLSearchParams({ q }); if (from) p.set("from", from); if (to) p.set("to", to);
+  query = $("#q").value.trim();
+  const from = $("#from").value, to = $("#to").value;
+  if (!query && !from && !to) return;
+  const p = new URLSearchParams({ q: query, mode }); if (from) p.set("from", from); if (to) p.set("to", to);
   if (push) history.replaceState(null, "", "?" + p);
-  $("#status").textContent = "Searching…";
-  const res = await fetch("/api/search?" + p).then(r => r.json()).catch(e => ({ error: String(e) }));
-  if (res.error) { $("#status").textContent = res.error; $("#results").innerHTML = ""; return; }
+  $("#app").classList.add("has-results"); $("#app").classList.remove("viewing");
+  $("#status").innerHTML = `<span class="spin"></span>${mode === "ideas" ? "Looking for that idea…" : "Searching…"}`;
+  $("#results").innerHTML = '<div class="skel"></div>'.repeat(4);
+  const mine = ++searchNo;
+  const res = await fetch("/api/search?" + p).then(r => r.ok ? r.json() : r.json().catch(() => ({ error: `The server answered ${r.status}.` })))
+    .catch(() => ({ error: "Couldn't reach the sermon library." }));
+  if (mine !== searchNo) return;   // a newer search already started
+  if (res.error) {
+    $("#status").textContent = "Search didn't work";
+    $("#results").innerHTML = `<div class="err">${esc(res.error)}<br>Check your connection, then try again.<br><button type="button" id="retry">Try again</button></div>`;
+    $("#retry").onclick = () => run(false);
+    return;
+  }
+  results = res.results;
   const noun = res.count === 1 ? "sermon" : "sermons";
-  const what = res.scripture ? `${noun} citing <b>${esc(res.scripture)}</b>` : `${noun} for <b>${esc(q || "that date range")}</b>`;
-  const range = res.date_range ? ` · ${esc(res.date_range[0])} to ${esc(res.date_range[1])}` : "";
-  $("#status").innerHTML = `${res.count} ${what}${range}`;
-  $("#results").innerHTML = res.results.map(r => card(r, q)).join("") ||
-    `<div class="empty">Nothing yet. Try a broader word, a chapter instead of a verse, or clear the dates.</div>`;
+  const what = res.scripture ? `citing <b>${esc(res.scripture)}</b>` : mode === "ideas" ? `closest to your idea` : `for <b>${esc(query || "those dates")}</b>`;
+  $("#status").innerHTML = `${res.count} ${noun} ${what}`;
+  if (matchMedia("(max-width: 860px)").matches && push) $("#status").scrollIntoView({ behavior: reduceMotion.matches ? "auto" : "smooth" });
+  $("#results").innerHTML = results.map(item).join("") ||
+    `<div class="empty">Nothing yet. ${mode === "words" ? "Try a broader word, a chapter instead of a verse, or switch to Ideas." : "Try describing it another way, or clear the dates."}</div>`;
 }
 $("#f").onsubmit = e => { e.preventDefault(); run(); };
 $("#from").onchange = $("#to").onchange = () => run();
+$("#back").onclick = () => $("#app").classList.remove("viewing");
 
+/* ---------- the sermon view ---------- */
+let player, ytReady, tx = null, playerVid = null;
+const ytApi = new Promise(r => { window.onYouTubeIframeAPIReady = r; });
+(() => { const s = document.createElement("script"); s.src = "https://www.youtube.com/iframe_api"; document.head.appendChild(s); })();
+
+async function open(r) {
+  const swapping = current && current !== r && !$("#sermon").hidden;
+  current = r;
+  if (swapping && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    $("#sermon").classList.add("swap"); await new Promise(res => setTimeout(res, 160)); $("#sermon").classList.remove("swap");
+  }
+  document.querySelectorAll(".item").forEach(x => x.classList.toggle("on", results[+x.dataset.i] === r));
+  $("#welcome").hidden = true; $("#sermon").hidden = false;
+  $("#app").classList.add("viewing");
+  $("#main").scrollTo({ top: 0, behavior: "smooth" });
+  $("#s-title").textContent = niceTitle(r.title);
+  $("#s-meta").innerHTML = `${fmtDate(r.date)}${kindOf(r.title) ? " · " + kindOf(r.title) : ""}${r.duration ? " · " + Math.round(r.duration / 60) + " min" : ""}
+    <a target="_blank" rel="noopener" id="yt" href="https://www.youtube.com/watch?v=${esc(r.id)}&t=${r.start}s">Open on YouTube ↗</a>`;
+  // moments in the order they happen in the sermon; the best match is flagged
+  const best = r.moments[0];
+  const ordered = [...r.moments].sort((a, b) => a.t - b.t);
+  $("#m-head").textContent = ordered.length > 1 ? `${ordered.length} moments in this sermon` : ordered.length ? "The moment" : "";
+  $("#moments").innerHTML = ordered.map((m, i) => `<button class="moment${m === best ? " on" : ""}" data-t="${m.t}" style="animation-delay:${i * 50}ms">
+      <span class="tm">${clock(m.t)}</span>
+      <span class="tx">${m.label && r.kind === "scripture" ? `<span class="ref">${esc(m.label)}</span>` : ""}${highlight((m.snippet || "").slice(0, 220), query)}${m === best && ordered.length > 1 ? '<span class="best">Best match</span>' : ""}</span>
+    </button>`).join("");
+  tx = null; renderTrack(0, true); $("#full").innerHTML = ""; $("#tickinfo").textContent = "";
+  play(r.id, r.start);
+  const t = await fetch("/api/transcript?id=" + encodeURIComponent(r.id)).then(x => x.json()).catch(() => null);
+  if (current !== r || !t || !t.w) return;
+  tx = { w: t.w.split(" "), t: t.t.map(x => x / 10), hits: new Set() };
+  // underline the words around each moment so they stand out as they glide by
+  for (const m of r.moments) { const k = idxAt(m.t + 4); for (let j = k; j < Math.min(tx.w.length, k + 14); j++) tx.hits.add(j); }
+  $("#tickinfo").textContent = `${tx.w.length.toLocaleString()} words`;
+  if (!$("#full").hidden) buildFull();
+}
+$("#moments").onclick = e => {
+  const b = e.target.closest(".moment"); if (!b) return;
+  document.querySelectorAll(".moment").forEach(x => x.classList.toggle("on", x === b));
+  seek(+b.dataset.t);
+};
+
+async function play(id, start) {
+  await ytApi;
+  if (player && playerVid === id) return seek(start);
+  playerVid = id;
+  if (player) { player.loadVideoById({ videoId: id, startSeconds: start }); return; }
+  player = new YT.Player("player", { videoId: id, host: "https://www.youtube-nocookie.com",
+    playerVars: { start, autoplay: 1, rel: 0, modestbranding: 1, playsinline: 1 } });
+}
+function seek(t) {
+  if (!player || !player.seekTo) return;
+  player.seekTo(t, true); player.playVideo();
+  smoothX = null; // jump the ticker rather than sliding across half the sermon
+  const a = $("#yt"); if (a && current) a.href = `https://www.youtube.com/watch?v=${current.id}&t=${t}s`;
+}
+
+/* ---------- karaoke ticker ---------- */
+// Words sit on one line; the line glides so the word being spoken stays a little left of
+// center. Its position eases toward the target every frame, so it flows with the preaching
+// instead of jumping word to word.
+const WINDOW = 160, reduceMotion = matchMedia("(prefers-reduced-motion: reduce)");
+let winStart = -1, spans = [], smoothX = null, lastNow = -1, lastT = 0, lastClock = 0;
+const idxAt = t => { if (!tx) return 0; let lo = 0, hi = tx.t.length - 1;
+  while (lo < hi) { const mid = (lo + hi + 1) >> 1; if (tx.t[mid] <= t) lo = mid; else hi = mid - 1; } return lo; };
+function renderTrack(k, clear) {
+  const track = $("#track");
+  if (clear || !tx) { track.innerHTML = ""; spans = []; winStart = -1; $("#idle").hidden = false; return; }
+  winStart = Math.max(0, k - 40);
+  const end = Math.min(tx.w.length, winStart + WINDOW);
+  track.innerHTML = tx.w.slice(winStart, end).map((w, j) => `<span${tx.hits.has(winStart + j) ? ' class="hit"' : ""}>${esc(w)}</span>`).join("");
+  spans = [...track.children]; lastNow = -1; $("#idle").hidden = true;
+}
+function currentTime() {
+  if (!player || !player.getCurrentTime) return null;
+  const t = player.getCurrentTime(), playing = player.getPlayerState && player.getPlayerState() === 1;
+  // getCurrentTime only ticks a few times a second; fill the gaps with the wall clock
+  const now = performance.now();
+  if (t !== lastT) { lastT = t; lastClock = now; }
+  return playing ? t + (now - lastClock) / 1000 : t;
+}
+function frame(ts) {
+  requestAnimationFrame(frame);
+  if (!tx || $("#sermon").hidden) return;
+  const t = currentTime(); if (t == null) return;
+  const k = idxAt(t);
+  if (winStart < 0 || k < winStart + 5 || k > winStart + WINDOW - 50) { const keep = smoothX != null && winStart >= 0 && spans[k - winStart]; renderTrack(k);
+    if (keep) smoothX = null; }
+  const s = spans[k - winStart]; if (!s) return;
+  // target: interpolate between this word and the next by elapsed speaking time
+  const next = spans[k + 1 - winStart], t0 = tx.t[k], t1 = tx.t[k + 1] ?? t0 + 0.4;
+  const frac = Math.max(0, Math.min(1, (t - t0) / Math.max(0.15, Math.min(t1 - t0, 1.2))));
+  const x0 = s.offsetLeft + s.offsetWidth / 2, x1 = next ? next.offsetLeft + next.offsetWidth / 2 : x0;
+  const target = (x0 + (x1 - x0) * frac) - $("#ticker").clientWidth * 0.42;
+  smoothX = smoothX == null || reduceMotion.matches ? target : smoothX + (target - smoothX) * 0.075;
+  $("#track").style.transform = `translate3d(${-smoothX}px,0,0)`;
+  if (k !== lastNow) {
+    for (let j = Math.max(0, lastNow - winStart - 2); j < spans.length; j++) {
+      const g = winStart + j; spans[j].classList.toggle("said", g < k); spans[j].classList.toggle("now", g === k);
+      if (g > k + 2) break;
+    }
+    if (lastNow < 0 || k < lastNow) spans.forEach((sp, j) => { sp.classList.toggle("said", winStart + j < k); sp.classList.toggle("now", winStart + j === k); });
+    lastNow = k; followFull(k);
+  }
+}
+requestAnimationFrame(frame);
+
+/* ---------- full transcript ---------- */
+let paras = [], curPara = -1;
+$("#toggle-full").onclick = () => { const f = $("#full"); f.hidden = !f.hidden; $("#toggle-full").textContent = f.hidden ? "Read the transcript" : "Hide the transcript"; if (!f.hidden) buildFull(); };
+function buildFull() {
+  if (!tx) return;
+  paras = []; let start = 0;
+  for (let i = 1; i <= tx.w.length; i++) {   // a new paragraph at a pause, or every ~70 words
+    if (i === tx.w.length || (i - start >= 25 && tx.t[i] - tx.t[i - 1] > 1.6) || i - start >= 70) { paras.push([start, i]); start = i; }
+  }
+  $("#full").innerHTML = paras.map(([a, b], p) => `<p data-p="${p}"><span class="ts" data-t="${Math.floor(tx.t[a])}">${clock(tx.t[a])}</span>${
+    tx.w.slice(a, b).map((w, j) => `<span class="w" data-i="${a + j}">${esc(w)}</span>`).join(" ")}</p>`).join("");
+  curPara = -1; followFull(lastNow);
+}
+$("#full").onclick = e => { const ts = e.target.closest(".ts"), w = e.target.closest(".w");
+  if (ts) seek(+ts.dataset.t); else if (w && tx) seek(Math.floor(tx.t[+w.dataset.i])); };
+function followFull(k) {
+  const f = $("#full"); if (f.hidden || !paras.length || k < 0) return;
+  const p = paras.findIndex(([a, b]) => k >= a && k < b);
+  const prev = f.querySelector(".w.now"); if (prev) prev.classList.remove("now");
+  const w = f.querySelector(`.w[data-i="${k}"]`); if (w) w.classList.add("now");
+  if (p !== curPara && p >= 0) {
+    f.querySelectorAll("p.cur").forEach(x => x.classList.remove("cur"));
+    const el = f.querySelector(`p[data-p="${p}"]`); el.classList.add("cur");
+    f.scrollTo({ top: el.offsetTop - f.clientHeight / 3, behavior: "smooth" });
+    curPara = p;
+  }
+}
+
+/* ---------- start ---------- */
 const init = new URLSearchParams(location.search);
-if (init.get("q") || init.get("from")) { $("#q").value = init.get("q") || ""; $("#from").value = init.get("from") || ""; $("#to").value = init.get("to") || ""; run(false); }
+setMode(init.get("mode") === "ideas" ? "ideas" : "words", false);
+if (init.get("q") || init.get("from")) { $("#q").value = init.get("q") || ""; $("#from").value = init.get("from") || ""; $("#to").value = init.get("to") || ""; grow(); run(false); }
+else $("#q").focus();
 fetch("/api/stats").then(r => r.json()).then(s => {
-  if (s.videos != null) document.querySelector("#lede").textContent =
-    `${s.videos} sermons · ${s.hours} hours · ${s.first ? fmtDate(s.first) + " to " + fmtDate(s.last) : ""}. Search any verse, word, idea, or date.`;
+  if (s.videos != null) $("#stats").textContent = `${s.videos} sermons · ${s.hours} hours${s.first ? " · " + fmtDate(s.first) + " to " + fmtDate(s.last) : ""}`;
 }).catch(() => {});
 </script>
 </body>

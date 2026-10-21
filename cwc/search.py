@@ -10,6 +10,7 @@ dates, and words/phrases/themes, alone or mixed:
 from __future__ import annotations
 
 import calendar
+import json
 import math
 import re
 import sqlite3
@@ -236,12 +237,15 @@ def browse_dates(con, rng, limit):
     return [{**dict(r), "score": 0, "start": 0, "moments": [], "kind": "date"} for r in rows]
 
 
-def search(con, q, limit=20, date_from=None, date_to=None):
+def search(con, q, limit=20, date_from=None, date_to=None, mode="words"):
     q = (q or "").strip()
     text, rng = extract_dates(q)
     if date_from or date_to:
         rng = (date_from or "0000-00-00", date_to or "9999-12-31")
     info = {"query": q, "date_range": rng, "scripture": None}
+    info["mode"] = mode
+    if mode == "ideas" and text:
+        return {**info, **_count(search_ideas(con, text, rng, limit))}
     ref = parse_query_ref(text) if text else None
     if ref:
         # Anything left after the reference ("Romans 8 suffering") narrows by words too.
@@ -265,8 +269,85 @@ def search(con, q, limit=20, date_from=None, date_to=None):
     return {**info, "count": len(results), "results": results}
 
 
+def _count(results):
+    return {"count": len(results), "results": results}
+
+
 def stats(con):
     v = con.execute("SELECT COUNT(*), MIN(date), MAX(date), SUM(duration), SUM(words) FROM videos").fetchone()
     top = con.execute("SELECT book, COUNT(DISTINCT video_id) n FROM refs GROUP BY book ORDER BY n DESC LIMIT 12").fetchall()
     return {"videos": v[0], "first": v[1], "last": v[2], "hours": round((v[3] or 0) / 3600, 1),
             "words": v[4] or 0, "top_books": [dict(r) for r in top]}
+
+
+# ---------- idea search (meaning, not words) ----------
+
+_vec_cache = {}
+
+
+def _vectors():
+    from . import embed
+    import numpy as np
+    key = embed.VECTORS.stat().st_mtime
+    if _vec_cache.get("key") != key:
+        meta = json.loads(embed.PASSAGES.read_text())
+        vecs = np.fromfile(embed.VECTORS, dtype=np.int8).reshape(-1, meta["dim"])
+        _vec_cache.update(key=key, meta=meta["passages"], vecs=vecs)
+    return _vec_cache["meta"], _vec_cache["vecs"]
+
+
+def _refine(words, times, s_ds, e_ds, qvec, encode):
+    """Within a 60s passage, find the 25s stretch closest to the idea, so the
+    video starts where the thought begins rather than up to 30s early."""
+    subs = []
+    for a in range(s_ds, max(s_ds + 1, e_ds - 200), 100):
+        seg = [w for w, t in zip(words, times) if a <= t < a + 250]
+        if len(seg) >= 8:
+            subs.append((a, " ".join(seg)))
+    if len(subs) < 2:
+        return s_ds
+    return subs[int((encode([t for _, t in subs]) @ qvec).argmax())][0]
+
+
+def search_ideas(con, q, rng, limit, encode=None, refine=8):
+    """Rank sermons by how close any one-minute passage comes to the meaning of q."""
+    import numpy as np
+    from . import embed
+    encode = encode or embed.encode
+    meta, vecs = _vectors()
+    qvec = encode([q], query=True)[0]
+    sims = (vecs.astype(np.float32) @ qvec) / 127.0
+    cache, results = {}, {}
+    for k in np.argsort(-sims)[:5000]:
+        vid, s_ds, e_ds = meta[k]
+        v = _video(con, vid, cache)
+        if not _date_ok(v, rng):
+            continue
+        sim = float(sims[k])
+        if vid not in results:
+            if len(results) >= limit:
+                continue
+            results[vid] = {**v, "score": sim, "moments": [], "kind": "idea", "_n": 0}
+        r = results[vid]
+        if sim >= r["score"] - 0.03:
+            r["_n"] += 1
+        if (sim >= r["score"] - 0.06 and len(r["moments"]) < 6
+                and all(abs(m["_s"] - s_ds) >= 450 for m in r["moments"])):
+            m = _moment(s_ds / 10, None, None, sim)
+            m.update(_s=s_ds, _e=e_ds)
+            r["moments"].append(m)
+    for r in results.values():
+        # sermons that stay on the idea for several minutes edge out a single passing mention
+        r["score"] = round(r["score"] + 0.01 * min(r.pop("_n") - 1, 5), 4)
+    out = _finish(results, limit)
+    for i, r in enumerate(out):
+        words, times = embed.video_words(con, r["id"])
+        for j, m in enumerate(r["moments"]):
+            s_ds, e_ds = m.pop("_s"), m.pop("_e")
+            start = _refine(words, times, s_ds, e_ds, qvec, encode) if i < refine and j == 0 else s_ds
+            m["t"] = max(0, int(start / 10 - LEAD_IN))
+            text = " ".join(w for w, t in zip(words, times) if start <= t <= e_ds)
+            m["snippet"] = text[:280] + (" …" if len(text) > 280 else "")
+            m["score"] = round(m["score"], 3)
+        r["start"] = r["moments"][0]["t"] if r["moments"] else 0
+    return out

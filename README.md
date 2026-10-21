@@ -29,6 +29,15 @@ resumes where it left off). If YouTube starts refusing requests, add `--cookies-
    "quoted phrase" search. Each result starts a few seconds before the matching words.
 4. **`cwc/server.py`** serves `static/index.html` and `/api/search`. Standard library only.
 
+## Static site (GitHub Pages)
+
+```bash
+./run.sh export      # writes docs/: the page + JSON data; search runs in the browser (cwc/engine.js)
+```
+
+Commit `docs/` and set GitHub Pages to serve the `main` branch `/docs` folder. `engine.js` answers the page's
+`/api/search` calls in the browser with the same ranking as `cwc/search.py`, fetching only the data a query needs.
+
 ## Tests
 
 ```bash

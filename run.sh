@@ -8,6 +8,8 @@ cd "$(dirname "$0")"
 case "${1:-serve}" in
   ingest) .venv/bin/python -m cwc.ingest --limit "${2:-15}" && .venv/bin/python -m cwc.index ;;
   index)  .venv/bin/python -m cwc.index ;;
+  embed)  .venv/bin/pip install -q -r requirements-ideas.txt && .venv/bin/python -m cwc.embed ;;
+  export) .venv/bin/python -m cwc.export_static ;;
   serve)  .venv/bin/python -m cwc.server ;;
-  *) echo "usage: ./run.sh [serve|ingest N|index]"; exit 1 ;;
+  *) echo "usage: ./run.sh [serve|ingest N|index|embed|export]"; exit 1 ;;
 esac

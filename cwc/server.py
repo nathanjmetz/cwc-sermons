@@ -18,7 +18,7 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
 from . import search as S
-from .index import DB
+from .index import DB, video_words
 
 STATIC = Path(__file__).resolve().parent.parent / "static"
 _local = threading.local()
@@ -49,7 +49,11 @@ class Handler(BaseHTTPRequestHandler):
         try:
             if u.path == "/api/search":
                 limit = min(int(qs.get("limit", 20)), 100)
-                return self._send(200, S.search(con(), qs.get("q", ""), limit, qs.get("from"), qs.get("to")))
+                return self._send(200, S.search(con(), qs.get("q", ""), limit, qs.get("from"), qs.get("to"),
+                                                qs.get("mode", "words")))
+            if u.path == "/api/transcript":
+                words, times = video_words(con(), qs.get("id", ""))
+                return self._send(200, {"w": " ".join(words), "t": times})
             if u.path == "/api/stats":
                 return self._send(200, S.stats(con()))
         except FileNotFoundError:
