@@ -867,6 +867,13 @@ function timeline(t) {
     lastLive = live;
     document.querySelectorAll(".moment").forEach(x => x.classList.toggle("live", !!live && +x.dataset.t === live.t));
     document.querySelectorAll(".mark").forEach(x => x.classList.toggle("on", !!live && +x.dataset.t === live.t));
+    // keep the moment being preached in view inside the moments list, without moving the page
+    const card = live && document.querySelector(`.moment[data-t="${live.t}"]`), list = $("#moments");
+    if (card && list.scrollHeight > list.clientHeight) {
+      const top = card.offsetTop - list.offsetTop;
+      if (top < list.scrollTop || top + card.offsetHeight > list.scrollTop + list.clientHeight)
+        list.scrollTo({ top: top - 8, behavior: reduceMotion.matches ? "auto" : "smooth" });
+    }
   }
 }
 
