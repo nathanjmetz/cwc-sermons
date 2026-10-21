@@ -96,6 +96,13 @@ textarea:focus { border-color: var(--sky); box-shadow: 0 0 0 4px rgba(0,153,204,
         font-size: 13.5px; line-height: 1.35; cursor: pointer; text-align: left; }
 .chip:hover { border-color: var(--sky); background: var(--tint); color: var(--deep); }
 .chip[aria-pressed=true] { background: var(--deep); border-color: var(--deep); color: #fff; }
+.chipselect { position: relative; padding: 0; display: inline-flex; align-items: center; }
+.chipselect select { -webkit-appearance: none; appearance: none; border: 0; background: transparent; font: inherit; color: inherit;
+                     padding: 6px 30px 6px 14px; border-radius: 50px; cursor: pointer; }
+.chipselect select:focus-visible { outline: 3px solid var(--sky); outline-offset: 2px; }
+.chipselect svg { position: absolute; right: 10px; width: 14px; height: 14px; pointer-events: none; }
+.chipselect.on { background: var(--deep); border-color: var(--deep); color: #fff; }
+.chipselect.on option { color: var(--ink); }
 .custom { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; animation: rise .25s var(--ease) both; }
 .custom label { font-size: 12px; font-weight: 600; color: var(--muted); display: grid; gap: 4px; }
 .custom input { font: inherit; font-size: 14px; background: #fff; color: var(--ink); border: 1.5px solid var(--line); border-radius: var(--r-sm); padding: 7px 9px; width: 100%; }
@@ -238,7 +245,7 @@ mark { background: var(--mark); color: inherit; border-radius: 3px; padding: 0 2
 .mark { position: absolute; top: 6px; width: 22px; height: 22px; margin-left: -11px; border-radius: 50%; border: 0; padding: 0; cursor: pointer;
         background: var(--deep); color: #fff; font-size: 11px; font-weight: 800; display: grid; place-items: center; box-shadow: 0 0 0 3px #fff;
         transition: transform .18s var(--ease), background .18s ease-out; }
-.mark.up { top: -8px; }
+.mark.moved { box-shadow: 0 0 0 3px #fff, 0 2px 6px rgba(0,52,92,.25); }
 .mark:hover, .mark.on { transform: scale(1.18); background: var(--sky-ink); }
 .mark.best { background: var(--green); color: var(--deep); }
 .timeline .ends { position: absolute; top: 30px; left: 0; right: 0; display: flex; justify-content: space-between; font-size: 11px; color: var(--faint); font-variant-numeric: tabular-nums; }
@@ -285,6 +292,18 @@ footer .inner { display: flex; flex-wrap: wrap; gap: 6px 18px; padding: 14px 24p
 footer a { color: #fff; text-decoration: none; }
 footer a:hover { text-decoration: underline; }
 
+/* short screens: tighten the search panel so it never scrolls */
+@media (max-height: 860px) and (min-width: 861px) {
+  .rail { padding-top: 22px; }
+  .rail h1 { font-size: 26px; }
+  .rail .lede { display: none; }
+  .rail h1 { margin-bottom: 18px; }
+  .rail h2 { margin: 20px 0 8px; }
+  form { gap: 10px; }
+  .hint { font-size: 12.5px; }
+}
+.side { container-type: inline-size; }
+@container (max-width: 420px) { .cardhead .sub { display: none; } }
 @media (max-width: 1240px) { :root { --rail: 300px; --list: 350px; } .item { grid-template-columns: 104px 1fr; } }
 @media (max-width: 1240px) and (min-width: 861px) { .how { grid-template-columns: 1fr; } }
 /* Phone and small tablet: one pane at a time */
@@ -568,28 +587,36 @@ let whenOpts = [];
 function buildWhen(first, last) {
   const y1 = +(last || iso(new Date())).slice(0, 4), y0 = +(first || String(y1)).slice(0, 4);
   const ago = new Date(); ago.setFullYear(ago.getFullYear() - 1);
-  whenOpts = [{ k: "any", label: "Any time", from: "", to: "" }, { k: "year", label: "Past year", from: iso(ago), to: "" }];
-  for (let y = y1; y >= y0; y--) whenOpts.push({ k: String(y), label: String(y), from: `${y}-01-01`, to: `${y}-12-31` });
-  whenOpts.push({ k: "custom", label: "Pick dates…" });
-  $("#when").innerHTML = whenOpts.map(o => `<button type="button" class="chip" data-k="${o.k}" aria-pressed="false">${o.label}</button>`).join("");
+  whenOpts = [{ k: "any", label: "Any time", from: "", to: "" }, { k: "past", label: "Past year", from: iso(ago), to: "" }];
+  const years = [];
+  for (let y = y1; y >= y0; y--) years.push({ k: String(y), label: String(y), from: `${y}-01-01`, to: `${y}-12-31` });
+  whenOpts.push(...years);
+  // a year picker keeps the list short enough that the panel never scrolls
+  $("#when").innerHTML = whenOpts.slice(0, 2).map(o => `<button type="button" class="chip" data-k="${o.k}" aria-pressed="false">${o.label}</button>`).join("") +
+    `<span class="chip chipselect"><select id="year" aria-label="Pick a year"><option value="">Year</option>${years.map(o => `<option value="${o.k}">${o.label}</option>`).join("")}</select>${CHEV}</span>` +
+    `<button type="button" class="chip" data-k="custom" aria-pressed="false">Pick dates…</button>`;
+  $("#year").onchange = e => { const o = whenOpts.find(x => x.k === e.target.value) || whenOpts[0];
+    $("#from").value = o.from; $("#to").value = o.to; syncWhen(); run(); };
   syncWhen();
 }
-function syncWhen() {   // light up the chip that matches the current dates
+const CHEV = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
+function syncWhen() {   // light up the choice that matches the current dates
   const f = $("#from").value, t = $("#to").value;
-  const hit = whenOpts.find(o => o.k !== "custom" && o.from === f && o.to === t);
+  const hit = whenOpts.find(o => o.from === f && o.to === t);
   const k = hit ? hit.k : "custom";
-  document.querySelectorAll("#when .chip").forEach(c => c.setAttribute("aria-pressed", c.dataset.k === k));
+  document.querySelectorAll("#when button.chip").forEach(c => c.setAttribute("aria-pressed", c.dataset.k === k));
+  const yr = $("#year"); if (yr) { yr.value = /^\d{4}$/.test(k) ? k : ""; yr.parentNode.classList.toggle("on", !!yr.value); }
   $("#custom").hidden = k !== "custom";
 }
 $("#when").onclick = e => {
-  const c = e.target.closest(".chip"); if (!c) return;
-  const o = whenOpts.find(x => x.k === c.dataset.k);
-  if (o.k === "custom") {
-    document.querySelectorAll("#when .chip").forEach(x => x.setAttribute("aria-pressed", x === c));
+  const c = e.target.closest("button.chip"); if (!c) return;
+  if (c.dataset.k === "custom") {
+    document.querySelectorAll("#when button.chip").forEach(x => x.setAttribute("aria-pressed", x === c));
     $("#custom").hidden = false; $("#from").focus(); return;
   }
+  const o = whenOpts.find(x => x.k === c.dataset.k);
   $("#from").value = o.from; $("#to").value = o.to; syncWhen();
-  if ($("#q").value.trim() || o.from || o.to) run();
+  if ($("#q").value.trim() || o.from || o.to || $("#who").value) run();
 };
 const grow = () => { const q = $("#q"); q.style.height = "auto"; q.style.height = Math.min(q.scrollHeight, 220) + "px"; };
 $("#q").addEventListener("input", grow);
@@ -705,14 +732,17 @@ async function open(r, at = null) {
   for (const m of r.moments) { const k = idxAt(m.t + 4); for (let j = k; j < Math.min(tx.w.length, k + 14); j++) tx.hits.add(j); }
   if (!$("#full").hidden) buildFull();
 }
-// lift a marker that would sit on top of its neighbor, so every number stays readable
+// keep every numbered marker readable: nudge crowded markers apart along the bar
 function spreadMarks() {
-  let prev = -99, up = false;
-  for (const m of document.querySelectorAll(".mark")) {
-    const x = m.offsetLeft;
-    up = x - prev < 24 ? !up : false;
-    m.classList.toggle("up", up); prev = x;
-  }
+  const marks = [...document.querySelectorAll(".mark")], tl = $("#timeline");
+  if (!marks.length || !tl.clientWidth) return;
+  const W = tl.clientWidth, gap = 25, dur = +tl.dataset.dur || 1;
+  const want = marks.map(m => +m.dataset.t / dur * W);
+  const x = [...want];
+  for (let i = 1; i < x.length; i++) x[i] = Math.max(x[i], x[i - 1] + gap);
+  for (let i = x.length - 1; i >= 0; i--) x[i] = Math.min(x[i], i === x.length - 1 ? W : x[i + 1] - gap);
+  for (let i = 0; i < x.length; i++) x[i] = Math.max(x[i], i ? x[i - 1] + gap : 0);
+  marks.forEach((m, i) => { m.style.left = x[i] + "px"; m.classList.toggle("moved", Math.abs(x[i] - want[i]) > 2); });
 }
 addEventListener("resize", () => requestAnimationFrame(spreadMarks));
 function pick(t) {
