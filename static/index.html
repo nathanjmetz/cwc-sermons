@@ -199,6 +199,9 @@ mark { background: var(--mark); color: inherit; border-radius: 3px; padding: 0 2
   .side .card { position: absolute; inset: 0; display: flex; flex-direction: column; }
   .side .moments { overflow-y: auto; flex: 1; min-height: 0; align-content: start; padding: 2px; margin: 16px -2px 0; }
   .side .full { flex: 1; min-height: 0; max-height: none; }
+  /* lists that scroll inside the card fade at their edges instead of slicing a card in half */
+  .side .moments, .side .full, .under .full { -webkit-mask-image: linear-gradient(transparent, #000 18px, #000 calc(100% - 18px), transparent);
+                                              mask-image: linear-gradient(transparent, #000 18px, #000 calc(100% - 18px), transparent); }
   /* when the video can't grow any taller, the transcript follows along in the room beneath it */
   .stage { align-self: stretch; display: flex; flex-direction: column; }
   .under { flex: 1; position: relative; margin-top: 20px; }
@@ -918,7 +921,7 @@ function setReading(on) {
 function place() {
   if ($("#sermon").hidden) return;
   const wide = getComputedStyle($(".sgrid")).gridTemplateColumns.split(" ").length > 1;
-  const below = wide && hasMoments && $(".side").offsetHeight - $("#pl").offsetHeight - 20 >= 200;
+  const below = wide && hasMoments && $(".side").offsetHeight - $("#pl").offsetHeight - 20 >= 96;
   $("#sermon").classList.toggle("below", below);
   if ($("#full").parentNode !== (below ? $("#under") : $("#m-card"))) {
     (below ? $("#under") : $("#m-card")).append($("#full")); curPara = -1;
