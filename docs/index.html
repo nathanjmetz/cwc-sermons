@@ -65,7 +65,7 @@ svg.i { width: 1em; height: 1em; flex: none; vertical-align: -.125em; }
 .app.has-results { grid-template-columns: var(--rail) var(--list) 1fr; }
 
 /* ---- search rail ---- */
-.rail { background: var(--bg); border-right: 1px solid var(--line); padding: 32px 24px 24px; overflow-y: auto; display: flex; flex-direction: column; }
+.rail { background: var(--bg); border-right: 1px solid var(--line); padding: 32px 24px 24px; overflow-x: hidden; overflow-y: auto; display: flex; flex-direction: column; }
 .eyebrow { font-size: 12px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--sky-ink); margin: 0 0 6px; }
 .rail h1 { font-weight: 800; font-size: 30px; line-height: 1.1; letter-spacing: -.02em; margin: 0 0 6px; color: var(--deep); }
 .rail .lede { color: var(--muted); font-size: 15px; margin: 0 0 24px; }
@@ -96,6 +96,13 @@ textarea:focus { border-color: var(--sky); box-shadow: 0 0 0 4px rgba(0,153,204,
         font-size: 13.5px; line-height: 1.35; cursor: pointer; text-align: left; }
 .chip:hover { border-color: var(--sky); background: var(--tint); color: var(--deep); }
 .chip[aria-pressed=true] { background: var(--deep); border-color: var(--deep); color: #fff; }
+.chipselect { position: relative; padding: 0; display: inline-flex; align-items: center; }
+.chipselect select { -webkit-appearance: none; appearance: none; border: 0; background: transparent; font: inherit; color: inherit;
+                     padding: 6px 30px 6px 14px; border-radius: 50px; cursor: pointer; }
+.chipselect select:focus-visible { outline: 3px solid var(--sky); outline-offset: 2px; }
+.chipselect svg { position: absolute; right: 10px; width: 14px; height: 14px; pointer-events: none; }
+.chipselect.on { background: var(--deep); border-color: var(--deep); color: #fff; }
+.chipselect.on option { color: var(--ink); }
 .custom { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; animation: rise .25s var(--ease) both; }
 .custom label { font-size: 12px; font-weight: 600; color: var(--muted); display: grid; gap: 4px; }
 .custom input { font: inherit; font-size: 14px; background: #fff; color: var(--ink); border: 1.5px solid var(--line); border-radius: var(--r-sm); padding: 7px 9px; width: 100%; }
@@ -136,7 +143,33 @@ mark { background: var(--mark); color: inherit; border-radius: 3px; padding: 0 2
 .empty { color: var(--muted); padding: 28px 8px; font-size: 14px; text-align: center; }
 
 /* ---- main / sermon ---- */
-.main { overflow-y: auto; min-width: 0; background: var(--bg); }
+.main { overflow-y: auto; min-width: 0; background: var(--bg); container: main / inline-size; position: relative; }
+
+/* show or hide the two left panels */
+.panes { position: sticky; top: 0; z-index: 5; display: flex; gap: 6px; padding: 10px 28px 0; background: linear-gradient(var(--bg) 70%, transparent); }
+.panes button { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); background: #fff; color: var(--muted);
+                font-size: 13px; font-weight: 700; padding: 5px 12px 5px 10px; border-radius: 50px; cursor: pointer; }
+.panes button svg { width: 15px; height: 15px; }
+.panes button:hover { border-color: var(--sky); color: var(--deep); }
+.panes button[aria-pressed=false] { background: var(--deep); border-color: var(--deep); color: #fff; }
+.app:not(.has-results) #t-list { display: none; }
+.app.hide-rail { grid-template-columns: 0 0 1fr; }
+.app.has-results.hide-rail { grid-template-columns: 0 var(--list) 1fr; }
+.app.has-results.hide-list { grid-template-columns: var(--rail) 0 1fr; }
+.app.has-results.hide-rail.hide-list { grid-template-columns: 0 0 1fr; }
+.rail, .list { transition: opacity .25s ease-out, padding .45s var(--ease); }
+.app.hide-rail .rail { opacity: 0; padding-inline: 0; border-right-width: 0; visibility: hidden; }
+.app.hide-list .list { opacity: 0; visibility: hidden; border-right-width: 0; }
+.rail > * { min-width: calc(var(--rail) - 48px); }
+#results > *, .list .status { min-width: calc(var(--list) - 28px); }
+
+.select { position: relative; }
+.select select { width: 100%; -webkit-appearance: none; appearance: none; font: inherit; font-size: 15px; font-weight: 600; color: var(--ink);
+                 background: #fff; border: 1.5px solid var(--line); border-radius: 50px; padding: 10px 40px 10px 16px; cursor: pointer;
+                 box-shadow: var(--shadow-sm); transition: border-color .18s ease-out, box-shadow .18s ease-out; }
+.select select:hover { border-color: var(--sky); }
+.select select:focus { outline: none; border-color: var(--sky); box-shadow: 0 0 0 4px rgba(0,153,204,.16); }
+.select svg { position: absolute; right: 14px; top: 50%; width: 18px; height: 18px; margin-top: -9px; color: var(--muted); pointer-events: none; }
 .welcome { max-width: 760px; margin: 0 auto; padding: 72px 40px; }
 .welcome h2 { color: var(--deep); font-size: 40px; font-weight: 800; letter-spacing: -.025em; margin: 0 0 14px; line-height: 1.12; }
 .welcome > p { color: var(--muted); font-size: 18px; margin: 0 0 32px; max-width: 600px; }
@@ -148,10 +181,21 @@ mark { background: var(--mark); color: inherit; border-radius: 3px; padding: 0 2
 .how .x { display: block; font-size: 14px; color: var(--muted); }
 .how .try { display: inline-flex; align-items: center; gap: 6px; margin-top: 14px; font-size: 14px; font-weight: 700; color: var(--blue); }
 
-.sermon { max-width: 1080px; margin: 0 auto; padding: 24px 32px 56px; }
+.sermon { padding: 10px 28px 48px; }
+.sgrid { display: grid; gap: 20px; margin-top: 16px; }
+.stage { width: 100%; max-width: max(520px, calc((100dvh - var(--bar) - 330px) * 16 / 9)); margin-inline: auto; }
+.side { min-width: 0; }
+.side .card { margin-top: 0; }
+/* wide: video and moments side by side, the moments list scrolls within the video's height */
+@container main (min-width: 900px) {
+  .sgrid { grid-template-columns: minmax(0, min(66%, calc((100dvh - var(--bar) - 300px) * 16 / 9))) minmax(300px, 1fr); }
+  .stage { max-width: none; }
+  .side { position: relative; }
+  .side .card { position: absolute; inset: 0; display: flex; flex-direction: column; }
+  .side .moments { overflow-y: auto; flex: 1; min-height: 0; align-content: start; padding: 2px; margin: 16px -2px 0; }
+}
 .back { display: none; border: 0; background: none; color: var(--blue); font-weight: 700; padding: 0 0 12px; cursor: pointer; }
 /* keep the video and ticker short enough that the moments show without scrolling */
-.stage { max-width: max(560px, calc((100dvh - var(--bar) - 420px) * 16 / 9)); display: grid; gap: 12px; }
 .player { position: relative; aspect-ratio: 16/9; background: #000; border-radius: var(--r-lg); overflow: hidden; box-shadow: var(--shadow-md); }
 /* the YouTube frame is taller than the box, so its title bar and logo sit in the cropped-off letterbox */
 .player #player, .player iframe { position: absolute; left: 0; top: -64px; width: 100%; height: calc(100% + 128px); border: 0; pointer-events: none; }
@@ -176,9 +220,10 @@ mark { background: var(--mark); color: inherit; border-radius: 3px; padding: 0 2
 .scrub::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; margin-top: -5px; border-radius: 50%; background: #fff; border: 0; box-shadow: 0 1px 4px rgba(0,0,0,.4); }
 .scrub::-moz-range-thumb { width: 14px; height: 14px; border-radius: 50%; background: #fff; border: 0; }
 .player:fullscreen { border-radius: 0; aspect-ratio: auto; width: 100vw; height: 100vh; }
-.shead { display: flex; align-items: flex-start; gap: 16px; margin: 22px 0 0; }
+.shead { display: flex; align-items: center; gap: 16px; margin: 6px 0 0; }
 .shead > div { flex: 1; min-width: 0; }
-.sermon h2 { color: var(--deep); font-size: 26px; font-weight: 800; letter-spacing: -.015em; line-height: 1.2; margin: 0 0 4px; }
+.sermon h2 { color: var(--deep); font-size: 26px; font-weight: 800; letter-spacing: -.015em; line-height: 1.25; margin: 0 0 2px;
+             white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sermon .meta { color: var(--muted); font-size: 14px; }
 .ytbtn { flex: none; display: inline-flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 700; text-decoration: none; color: var(--deep);
          border: 1.5px solid var(--line); border-radius: 50px; padding: 8px 16px; background: #fff; transition: border-color .18s ease-out, background .18s ease-out; }
@@ -200,7 +245,7 @@ mark { background: var(--mark); color: inherit; border-radius: 3px; padding: 0 2
 .mark { position: absolute; top: 6px; width: 22px; height: 22px; margin-left: -11px; border-radius: 50%; border: 0; padding: 0; cursor: pointer;
         background: var(--deep); color: #fff; font-size: 11px; font-weight: 800; display: grid; place-items: center; box-shadow: 0 0 0 3px #fff;
         transition: transform .18s var(--ease), background .18s ease-out; }
-.mark.up { top: -8px; }
+.mark.moved { box-shadow: 0 0 0 3px #fff, 0 2px 6px rgba(0,52,92,.25); }
 .mark:hover, .mark.on { transform: scale(1.18); background: var(--sky-ink); }
 .mark.best { background: var(--green); color: var(--deep); }
 .timeline .ends { position: absolute; top: 30px; left: 0; right: 0; display: flex; justify-content: space-between; font-size: 11px; color: var(--faint); font-variant-numeric: tabular-nums; }
@@ -221,7 +266,7 @@ mark { background: var(--mark); color: inherit; border-radius: 3px; padding: 0 2
 .moment .tx { font-size: 13.5px; line-height: 1.55; color: var(--ink); display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
 
 /* Karaoke ticker: one line of the sermon gliding past, the spoken word lit */
-.ticker { position: relative; height: 72px; overflow: hidden; border-radius: var(--r); background: var(--deep); }
+.ticker { margin-top: 16px; position: relative; height: 76px; overflow: hidden; border-radius: var(--r); background: var(--deep); }
 .lane { position: absolute; inset: 0; overflow: hidden;
         -webkit-mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
         mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent); }
@@ -247,6 +292,18 @@ footer .inner { display: flex; flex-wrap: wrap; gap: 6px 18px; padding: 14px 24p
 footer a { color: #fff; text-decoration: none; }
 footer a:hover { text-decoration: underline; }
 
+/* short screens: tighten the search panel so it never scrolls */
+@media (max-height: 860px) and (min-width: 861px) {
+  .rail { padding-top: 22px; }
+  .rail h1 { font-size: 26px; }
+  .rail .lede { display: none; }
+  .rail h1 { margin-bottom: 18px; }
+  .rail h2 { margin: 20px 0 8px; }
+  form { gap: 10px; }
+  .hint { font-size: 12.5px; }
+}
+.side { container: side / inline-size; }
+@container side (max-width: 420px) { .cardhead .sub { display: none; } }
 @media (max-width: 1240px) { :root { --rail: 300px; --list: 350px; } .item { grid-template-columns: 104px 1fr; } }
 @media (max-width: 1240px) and (min-width: 861px) { .how { grid-template-columns: 1fr; } }
 /* Phone and small tablet: one pane at a time */
@@ -262,6 +319,9 @@ footer a:hover { text-decoration: underline; }
   .app.viewing .main { display: block; }
   .back { display: block; }
   .sermon { padding: 16px; }
+  .panes { display: none; }
+  .rail > *, #results > *, .list .status { min-width: 0; }
+  .sermon h2 { white-space: normal; }
   .player { border-radius: var(--r); }
   .stage { max-width: none; }
   .clock { font-size: 12px; } .controls { gap: 6px; padding: 24px 8px 6px; }
@@ -273,7 +333,7 @@ footer a:hover { text-decoration: underline; }
   .moments { grid-template-columns: 1fr; }
   .cardhead .sub { display: none; }
 }
-@media (min-width: 1800px) { :root { --rail: 380px; --list: 460px; } .sermon { max-width: 1320px; } .track { font-size: 34px; } .ticker { height: 88px; } }
+@media (min-width: 1800px) { :root { --rail: 380px; --list: 460px; } .track { font-size: 34px; } .ticker { height: 88px; } }
 
 /* ---------- motion: quick for clicks (0.1–0.3s ease-out), up to 0.5s for big moves ---------- */
 button, .chip, .item, .moment, .go, .nav a, .how button { transition: background-color .18s ease-out, color .18s ease-out, border-color .18s ease-out, box-shadow .18s ease-out, transform .18s var(--ease); }
@@ -357,8 +417,8 @@ button:active, .chip:active, .item:active, .moment:active, .how button:active { 
       <button class="go">Search</button>
     </form>
     <div>
-      <h2>Try</h2>
-      <div class="chips" id="examples"></div>
+      <h2><label for="who">Speaker</label></h2>
+      <div class="select"><select id="who"><option value="">Anyone</option></select><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></div>
     </div>
     <div>
       <h2 id="when-h">When</h2>
@@ -377,6 +437,10 @@ button:active, .chip:active, .item:active, .moment:active, .how button:active { 
   </section>
 
   <main class="main" id="main">
+    <div class="panes" role="group" aria-label="Show or hide panels">
+      <button type="button" id="t-rail" aria-pressed="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4-4"/></svg>Search</button>
+      <button type="button" id="t-list" aria-pressed="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/></svg>Results</button>
+    </div>
     <div class="welcome" id="welcome">
       <h2>Every sermon, searchable to the second.</h2>
       <p>Search on the left. Pick a sermon and it starts right where the preacher gets to it, with the words scrolling along as they're spoken.</p>
@@ -397,7 +461,12 @@ button:active, .chip:active, .item:active, .moment:active, .how button:active { 
     </div>
     <article class="sermon" id="sermon" hidden>
       <button class="back" id="back">← Results</button>
-      <div class="stage">
+      <div class="shead">
+        <div><h2 id="s-title"></h2><div class="meta" id="s-meta"></div></div>
+        <a class="ytbtn" id="yt" target="_blank" rel="noopener" href="#"><svg class="i" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M23 7.2a3 3 0 0 0-2.1-2.1C19 4.6 12 4.6 12 4.6s-7 0-8.9.5A3 3 0 0 0 1 7.2 31 31 0 0 0 .5 12 31 31 0 0 0 1 16.8a3 3 0 0 0 2.1 2.1c1.9.5 8.9.5 8.9.5s7 0 8.9-.5a3 3 0 0 0 2.1-2.1 31 31 0 0 0 .5-4.8 31 31 0 0 0-.5-4.8ZM9.8 15.1V8.9l5.7 3.1-5.7 3.1Z"/></svg>Open on YouTube</a>
+      </div>
+      <div class="sgrid">
+        <div class="stage">
         <div class="player paused" id="pl">
           <div id="player"></div>
           <button type="button" class="shield" id="shield" aria-label="Play"><span class="big"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.4-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5Z"/></svg></span></button>
@@ -409,17 +478,16 @@ button:active, .chip:active, .item:active, .moment:active, .how button:active { 
             <button type="button" id="fs" aria-label="Full screen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
           </div>
         </div>
-        <div class="ticker" id="ticker" aria-hidden="true"><div class="lane"><div class="track" id="track"></div></div><div class="idle" id="idle">The words appear here as the sermon plays</div></div>
+        </div>
+        <aside class="side">
+        <section class="card" id="m-card" aria-labelledby="m-head">
+          <div class="cardhead"><h3 id="m-head"></h3><span class="sub" id="m-sub"></span></div>
+          <div class="timeline" id="timeline" aria-hidden="true"><div class="bar"></div><div class="prog" id="prog"></div><div class="head" id="phead"></div><div id="marks"></div><div class="ends"><span>0:00</span><span id="t-end"></span></div></div>
+          <div class="moments" id="moments"></div>
+        </section>
+        </aside>
       </div>
-      <div class="shead">
-        <div><h2 id="s-title"></h2><div class="meta" id="s-meta"></div></div>
-        <a class="ytbtn" id="yt" target="_blank" rel="noopener" href="#"><svg class="i" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M23 7.2a3 3 0 0 0-2.1-2.1C19 4.6 12 4.6 12 4.6s-7 0-8.9.5A3 3 0 0 0 1 7.2 31 31 0 0 0 .5 12 31 31 0 0 0 1 16.8a3 3 0 0 0 2.1 2.1c1.9.5 8.9.5 8.9.5s7 0 8.9-.5a3 3 0 0 0 2.1-2.1 31 31 0 0 0 .5-4.8 31 31 0 0 0-.5-4.8ZM9.8 15.1V8.9l5.7 3.1-5.7 3.1Z"/></svg>Open on YouTube</a>
-      </div>
-      <section class="card" id="m-card" aria-labelledby="m-head">
-        <div class="cardhead"><h3 id="m-head"></h3><span class="sub" id="m-sub"></span></div>
-        <div class="timeline" id="timeline" aria-hidden="true"><div class="bar"></div><div class="prog" id="prog"></div><div class="head" id="phead"></div><div id="marks"></div><div class="ends"><span>0:00</span><span id="t-end"></span></div></div>
-        <div class="moments" id="moments"></div>
-      </section>
+      <div class="ticker" id="ticker" aria-hidden="true"><div class="lane"><div class="track" id="track"></div></div><div class="idle" id="idle">The words appear here as the sermon plays</div></div>
       <section class="card" aria-labelledby="live-h">
         <div class="cardhead" style="margin:0"><h3 id="live-h">Full transcript</h3><button type="button" class="linkbtn" id="toggle-full">Show it</button></div>
         <div class="full" id="full" hidden></div>
@@ -483,13 +551,36 @@ function setMode(m, focus = true) {
   document.querySelectorAll(".mode button").forEach(b => b.setAttribute("aria-pressed", b.dataset.mode === m));
   document.querySelector(".mode").classList.toggle("ideas", m === "ideas");
   $("#q").placeholder = MODES[m].ph; $("#hint").textContent = MODES[m].hint;
-  $("#examples").innerHTML = MODES[m].ex.map(e => `<button class="chip" type="button">${esc(e)}</button>`).join("");
   if (focus) $("#q").focus();
 }
 document.querySelector(".mode").onclick = e => { const b = e.target.closest("button"); if (b) { setMode(b.dataset.mode); if ($("#q").value.trim()) run(); } };
-$("#examples").onclick = e => { if (e.target.matches(".chip")) { $("#q").value = e.target.textContent; grow(); run(); } };
 document.querySelector(".how").onclick = e => { const b = e.target.closest("button"); if (!b) return;
   setMode(b.dataset.mode, false); $("#q").value = b.dataset.q; grow(); run(); };
+
+/* ---------- speaker ---------- */
+function buildWho(list) {
+  const cur = $("#who").value;
+  $("#who").innerHTML = `<option value="">Anyone</option>` + (list || []).map(([n, c]) =>
+    `<option value="${esc(n)}">${esc(n)} (${c})</option>`).join("");
+  $("#who").value = cur;
+}
+$("#who").onchange = () => run();
+const whoLine = r => (r.speakers || []).join(" & ");
+
+/* ---------- show or hide the two left panels ---------- */
+const store = { get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } },
+                set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} } };
+function setPane(which, show) {
+  $("#app").classList.toggle("hide-" + which, !show);
+  $("#t-" + which).setAttribute("aria-pressed", show);
+  $("#t-" + which).title = (show ? "Hide the " : "Show the ") + (which === "rail" ? "search panel" : "results");
+  store.set("cwc-pane-" + which, show ? "1" : "0");
+  setTimeout(spreadMarks, 480);
+}
+["rail", "list"].forEach(w => {
+  $("#t-" + w).onclick = () => setPane(w, $("#app").classList.contains("hide-" + w));
+  if (store.get("cwc-pane-" + w) === "0") setPane(w, false);
+});
 
 /* ---------- when: quick date ranges instead of bare date boxes ---------- */
 const iso = d => d.toISOString().slice(0, 10);
@@ -497,28 +588,36 @@ let whenOpts = [];
 function buildWhen(first, last) {
   const y1 = +(last || iso(new Date())).slice(0, 4), y0 = +(first || String(y1)).slice(0, 4);
   const ago = new Date(); ago.setFullYear(ago.getFullYear() - 1);
-  whenOpts = [{ k: "any", label: "Any time", from: "", to: "" }, { k: "year", label: "Past year", from: iso(ago), to: "" }];
-  for (let y = y1; y >= y0; y--) whenOpts.push({ k: String(y), label: String(y), from: `${y}-01-01`, to: `${y}-12-31` });
-  whenOpts.push({ k: "custom", label: "Pick dates…" });
-  $("#when").innerHTML = whenOpts.map(o => `<button type="button" class="chip" data-k="${o.k}" aria-pressed="false">${o.label}</button>`).join("");
+  whenOpts = [{ k: "any", label: "Any time", from: "", to: "" }, { k: "past", label: "Past year", from: iso(ago), to: "" }];
+  const years = [];
+  for (let y = y1; y >= y0; y--) years.push({ k: String(y), label: String(y), from: `${y}-01-01`, to: `${y}-12-31` });
+  whenOpts.push(...years);
+  // a year picker keeps the list short enough that the panel never scrolls
+  $("#when").innerHTML = whenOpts.slice(0, 2).map(o => `<button type="button" class="chip" data-k="${o.k}" aria-pressed="false">${o.label}</button>`).join("") +
+    `<span class="chip chipselect"><select id="year" aria-label="Pick a year"><option value="">Year</option>${years.map(o => `<option value="${o.k}">${o.label}</option>`).join("")}</select>${CHEV}</span>` +
+    `<button type="button" class="chip" data-k="custom" aria-pressed="false">Pick dates…</button>`;
+  $("#year").onchange = e => { const o = whenOpts.find(x => x.k === e.target.value) || whenOpts[0];
+    $("#from").value = o.from; $("#to").value = o.to; syncWhen(); run(); };
   syncWhen();
 }
-function syncWhen() {   // light up the chip that matches the current dates
+const CHEV = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
+function syncWhen() {   // light up the choice that matches the current dates
   const f = $("#from").value, t = $("#to").value;
-  const hit = whenOpts.find(o => o.k !== "custom" && o.from === f && o.to === t);
+  const hit = whenOpts.find(o => o.from === f && o.to === t);
   const k = hit ? hit.k : "custom";
-  document.querySelectorAll("#when .chip").forEach(c => c.setAttribute("aria-pressed", c.dataset.k === k));
+  document.querySelectorAll("#when button.chip").forEach(c => c.setAttribute("aria-pressed", c.dataset.k === k));
+  const yr = $("#year"); if (yr) { yr.value = /^\d{4}$/.test(k) ? k : ""; yr.parentNode.classList.toggle("on", !!yr.value); }
   $("#custom").hidden = k !== "custom";
 }
 $("#when").onclick = e => {
-  const c = e.target.closest(".chip"); if (!c) return;
-  const o = whenOpts.find(x => x.k === c.dataset.k);
-  if (o.k === "custom") {
-    document.querySelectorAll("#when .chip").forEach(x => x.setAttribute("aria-pressed", x === c));
+  const c = e.target.closest("button.chip"); if (!c) return;
+  if (c.dataset.k === "custom") {
+    document.querySelectorAll("#when button.chip").forEach(x => x.setAttribute("aria-pressed", x === c));
     $("#custom").hidden = false; $("#from").focus(); return;
   }
+  const o = whenOpts.find(x => x.k === c.dataset.k);
   $("#from").value = o.from; $("#to").value = o.to; syncWhen();
-  if ($("#q").value.trim() || o.from || o.to) run();
+  if ($("#q").value.trim() || o.from || o.to || $("#who").value) run();
 };
 const grow = () => { const q = $("#q"); q.style.height = "auto"; q.style.height = Math.min(q.scrollHeight, 220) + "px"; };
 $("#q").addEventListener("input", grow);
@@ -548,7 +647,7 @@ function item(r, i) {
   return `<button class="item" data-i="${i}" style="animation-delay:${Math.min(i, 12) * 35}ms">
     <div class="thumb"><img loading="lazy" src="${esc(r.thumbnail)}" alt="">${r.duration ? `<span class="dur">${clock(r.duration)}</span>` : ""}</div>
     <div><div class="t">${esc(niceTitle(r.title))}</div>
-      <div class="d">${fmtDate(r.date)}${kindOf(r.title) ? " · " + kindOf(r.title) : ""}</div></div>
+      <div class="d">${[fmtDate(r.date), whoLine(r), kindOf(r.title)].filter(Boolean).join(" · ")}</div></div>
     ${best ? `<div class="s">${ref}${highlight(best.snippet || "", query)}</div>` :
       (r.cited_in || []).length ? `<div class="s">Cited in the ${esc(r.cited_in[0])}</div>` : ""}
     ${n || r.kind === "idea" ? `<div class="times">${n ? `<span class="lbl">${n > 1 ? n + " moments" : "Starts at"}</span>${pills}` : ""}${strength(r)}</div>` : ""}
@@ -559,9 +658,9 @@ $("#results").onclick = e => { const b = e.target.closest(".item"); if (!b) retu
 
 async function run(push = true) {
   query = $("#q").value.trim();
-  const from = $("#from").value, to = $("#to").value;
-  if (!query && !from && !to) return;
-  const p = new URLSearchParams({ q: query, mode }); if (from) p.set("from", from); if (to) p.set("to", to);
+  const from = $("#from").value, to = $("#to").value, who = $("#who").value;
+  if (!query && !from && !to && !who) return;
+  const p = new URLSearchParams({ q: query, mode }); if (from) p.set("from", from); if (to) p.set("to", to); if (who) p.set("who", who);
   if (push) history.replaceState(null, "", "?" + p);
   $("#app").classList.add("has-results"); $("#app").classList.remove("viewing");
   $("#status").innerHTML = `<span class="spin"></span>${mode === "ideas" ? "Looking for that idea…" : "Searching…"}`;
@@ -579,7 +678,7 @@ async function run(push = true) {
   results = res.results;
   const noun = res.count === 1 ? "sermon" : "sermons";
   const what = res.scripture ? `citing <b>${esc(res.scripture)}</b>` : mode === "ideas" ? `closest to your idea` : `for <b>${esc(query || "those dates")}</b>`;
-  $("#status").innerHTML = `${res.count} ${noun} ${what}`;
+  $("#status").innerHTML = `${res.count} ${noun} ${query || res.scripture ? what : ""}${who ? ` by <b>${esc(who)}</b>` : ""}`;
   if (matchMedia("(max-width: 860px)").matches && push) $("#status").scrollIntoView({ behavior: reduceMotion.matches ? "auto" : "smooth" });
   $("#results").innerHTML = results.map(item).join("") ||
     `<div class="empty">Nothing yet. ${mode === "words" ? "Try a broader word, a chapter instead of a verse, or switch to Ideas." : "Try describing it another way, or clear the dates."}</div>`;
@@ -605,8 +704,8 @@ async function open(r, at = null) {
   $("#welcome").hidden = true; $("#sermon").hidden = false;
   $("#app").classList.add("viewing");
   $("#main").scrollTo({ top: 0, behavior: "smooth" });
-  $("#s-title").textContent = niceTitle(r.title);
-  $("#s-meta").textContent = `${fmtDate(r.date)}${kindOf(r.title) ? " · " + kindOf(r.title) : ""}${r.duration ? " · " + Math.round(r.duration / 60) + " min" : ""}`;
+  $("#s-title").textContent = niceTitle(r.title); $("#s-title").title = niceTitle(r.title);
+  $("#s-meta").textContent = [fmtDate(r.date), whoLine(r), kindOf(r.title), r.duration ? Math.round(r.duration / 60) + " min" : ""].filter(Boolean).join(" · ");
   $("#yt").href = `https://www.youtube.com/watch?v=${encodeURIComponent(r.id)}&t=${start}s`;
   // moments in the order they happen in the sermon, numbered to match the timeline; the best match is flagged
   const best = r.moments[0];
@@ -634,14 +733,17 @@ async function open(r, at = null) {
   for (const m of r.moments) { const k = idxAt(m.t + 4); for (let j = k; j < Math.min(tx.w.length, k + 14); j++) tx.hits.add(j); }
   if (!$("#full").hidden) buildFull();
 }
-// lift a marker that would sit on top of its neighbor, so every number stays readable
+// keep every numbered marker readable: nudge crowded markers apart along the bar
 function spreadMarks() {
-  let prev = -99, up = false;
-  for (const m of document.querySelectorAll(".mark")) {
-    const x = m.offsetLeft;
-    up = x - prev < 24 ? !up : false;
-    m.classList.toggle("up", up); prev = x;
-  }
+  const marks = [...document.querySelectorAll(".mark")], tl = $("#timeline");
+  if (!marks.length || !tl.clientWidth) return;
+  const W = tl.clientWidth, gap = 25, dur = +tl.dataset.dur || 1;
+  const want = marks.map(m => +m.dataset.t / dur * W);
+  const x = [...want];
+  for (let i = 1; i < x.length; i++) x[i] = Math.max(x[i], x[i - 1] + gap);
+  for (let i = x.length - 1; i >= 0; i--) x[i] = Math.min(x[i], i === x.length - 1 ? W : x[i + 1] - gap);
+  for (let i = 0; i < x.length; i++) x[i] = Math.max(x[i], i ? x[i - 1] + gap : 0);
+  marks.forEach((m, i) => { m.style.left = x[i] + "px"; m.classList.toggle("moved", Math.abs(x[i] - want[i]) > 2); });
 }
 addEventListener("resize", () => requestAnimationFrame(spreadMarks));
 function pick(t) {
@@ -766,6 +868,13 @@ function timeline(t) {
     lastLive = live;
     document.querySelectorAll(".moment").forEach(x => x.classList.toggle("live", !!live && +x.dataset.t === live.t));
     document.querySelectorAll(".mark").forEach(x => x.classList.toggle("on", !!live && +x.dataset.t === live.t));
+    // keep the moment being preached in view inside the moments list, without moving the page
+    const card = live && document.querySelector(`.moment[data-t="${live.t}"]`), list = $("#moments");
+    if (card && list.scrollHeight > list.clientHeight) {
+      const top = card.offsetTop - list.offsetTop;
+      if (top < list.scrollTop || top + card.offsetHeight > list.scrollTop + list.clientHeight)
+        list.scrollTo({ top: top - 8, behavior: reduceMotion.matches ? "auto" : "smooth" });
+    }
   }
 }
 
@@ -801,13 +910,14 @@ function followFull(k) {
 const init = new URLSearchParams(location.search);
 setMode(init.get("mode") === "ideas" ? "ideas" : "words", false);
 $("#from").value = init.get("from") || ""; $("#to").value = init.get("to") || "";
+if (init.get("who")) { $("#who").innerHTML += `<option value="${esc(init.get("who"))}">${esc(init.get("who"))}</option>`; $("#who").value = init.get("who"); }
 buildWhen();
-if (init.get("q") || init.get("from") || init.get("to")) { $("#q").value = init.get("q") || ""; grow(); run(false); }
+if (init.get("q") || init.get("from") || init.get("to") || init.get("who")) { $("#q").value = init.get("q") || ""; grow(); run(false); }
 else $("#q").focus();
 fetch("/api/stats").then(r => r.json()).then(s => {
   if (s.videos == null) return;
   $("#stats").innerHTML = `<b>${s.videos} sermons</b> · ${Math.round(s.hours)} hours${s.first ? `<br>${fmtDate(s.first)} to ${fmtDate(s.last)}` : ""}`;
-  buildWhen(s.first, s.last);
+  buildWhen(s.first, s.last); buildWho(s.speakers);
 }).catch(() => {});
 </script>
 </body>
