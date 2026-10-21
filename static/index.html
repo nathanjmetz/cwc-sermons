@@ -84,6 +84,7 @@ textarea { width: 100%; resize: none; border: 1.5px solid var(--line); border-ra
            color: var(--ink); background: #fff; min-height: 54px; max-height: 220px; outline: none; box-shadow: var(--shadow-sm);
            transition: border-color .18s ease-out, box-shadow .18s ease-out; }
 textarea::placeholder { color: var(--faint); }
+textarea:focus-visible { outline: none; }
 textarea:focus { border-color: var(--sky); box-shadow: 0 0 0 4px rgba(0,153,204,.16); }
 .hint { font-size: 13px; color: var(--muted); margin: 0; line-height: 1.5; }
 .go { border: 0; background: var(--sky-ink); color: #fff; font-weight: 700; font-size: 15px; padding: 13px 0; border-radius: 50px; cursor: pointer;
@@ -177,6 +178,7 @@ mark { background: var(--mark); color: inherit; border-radius: 3px; padding: 0 2
 .mark { position: absolute; top: 6px; width: 22px; height: 22px; margin-left: -11px; border-radius: 50%; border: 0; padding: 0; cursor: pointer;
         background: var(--deep); color: #fff; font-size: 11px; font-weight: 800; display: grid; place-items: center; box-shadow: 0 0 0 3px #fff;
         transition: transform .18s var(--ease), background .18s ease-out; }
+.mark.up { top: -8px; }
 .mark:hover, .mark.on { transform: scale(1.18); background: var(--sky-ink); }
 .mark.best { background: var(--green); color: var(--deep); }
 .timeline .ends { position: absolute; top: 30px; left: 0; right: 0; display: flex; justify-content: space-between; font-size: 11px; color: var(--faint); font-variant-numeric: tabular-nums; }
@@ -189,7 +191,7 @@ mark { background: var(--mark); color: inherit; border-radius: 3px; padding: 0 2
 .moment .top { display: flex; align-items: center; gap: 8px; }
 .moment .num { width: 20px; height: 20px; border-radius: 50%; background: var(--deep); color: #fff; font-size: 11px; font-weight: 800; display: grid; place-items: center; flex: none; }
 .moment .tm { font-weight: 800; color: var(--deep); font-variant-numeric: tabular-nums; font-size: 14px; }
-.moment .best { font-size: 11px; font-weight: 700; color: var(--deep); background: var(--green); border-radius: 50px; padding: 1px 8px; }
+.moment .best { white-space: nowrap; font-size: 11px; font-weight: 700; color: var(--deep); background: var(--green); border-radius: 50px; padding: 1px 8px; }
 .moment .playing { margin-left: auto; font-size: 11px; font-weight: 700; color: var(--sky-ink); display: none; align-items: center; gap: 5px; }
 .moment.live .playing { display: inline-flex; }
 .moment.live .playing::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--sky); animation: beat 1.2s ease-in-out infinite; }
@@ -245,6 +247,7 @@ footer a:hover { text-decoration: underline; }
   .welcome { display: none; }
   .track { font-size: 24px; }
   .moments { grid-template-columns: 1fr; }
+  .cardhead .sub { display: none; }
 }
 @media (min-width: 1800px) { :root { --rail: 380px; --list: 460px; } .sermon { max-width: 1320px; } .track { font-size: 34px; } .ticker { height: 88px; } }
 
@@ -425,7 +428,7 @@ const niceTitle = t => { const p = (t || "").split("|").map(s => s.trim()); retu
 const kindOf = t => /^\s*service\s*\|/i.test(t || "") ? "Full service" : "";
 
 const MODES = {
-  words: { ph: 'A verse, phrase, or date: Ezekiel 4:9, "prodigal son", March 2024',
+  words: { ph: 'Ezekiel 4:9, "prodigal son", March 2024',
            hint: "Finds the exact words. Put a phrase in quotes to keep the words together.",
            ex: ["Ezekiel 4:9", "Leviticus 19", "forgiveness", '"the atonement"', "October 2026"] },
   ideas: { ph: "Describe an idea, theme, or situation",
@@ -581,6 +584,7 @@ async function open(r, at = null) {
       <span class="top"><span class="num">${i + 1}</span><span class="tm">${clock(m.t)}</span>${m === best && n > 1 ? '<span class="best">Best match</span>' : ""}<span class="playing">Playing</span></span>
       <span class="tx">${m.label && r.kind === "scripture" ? `<span class="ref">${esc(m.label)}</span>` : ""}${highlight((m.snippet || "").slice(0, 240), query)}</span>
     </button>`).join("");
+  requestAnimationFrame(spreadMarks);
   tx = null; renderTrack(0, true); $("#full").innerHTML = "";
   play(r.id, start);
   const t = await fetch("/api/transcript?id=" + encodeURIComponent(r.id)).then(x => x.json()).catch(() => null);
@@ -590,6 +594,16 @@ async function open(r, at = null) {
   for (const m of r.moments) { const k = idxAt(m.t + 4); for (let j = k; j < Math.min(tx.w.length, k + 14); j++) tx.hits.add(j); }
   if (!$("#full").hidden) buildFull();
 }
+// lift a marker that would sit on top of its neighbor, so every number stays readable
+function spreadMarks() {
+  let prev = -99, up = false;
+  for (const m of document.querySelectorAll(".mark")) {
+    const x = m.offsetLeft;
+    up = x - prev < 24 ? !up : false;
+    m.classList.toggle("up", up); prev = x;
+  }
+}
+addEventListener("resize", () => requestAnimationFrame(spreadMarks));
 function pick(t) {
   document.querySelectorAll(".moment").forEach(x => x.classList.toggle("on", +x.dataset.t === t));
   seek(t);
