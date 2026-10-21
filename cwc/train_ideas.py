@@ -122,8 +122,8 @@ def cmd_train(epochs=1):
             examples.append(InputExample(texts=[embed.QUERY_PREFIX + q, texts[k], texts[rnd.choice(neg)]]))
     rnd.shuffle(examples)
     print(f"{len(examples)} training triplets from {len(by_q)} searches")
-    model = SentenceTransformer(embed.MODEL)
-    model.max_seq_length = 256   # a one-minute passage is ~200 tokens; this keeps it inside the Mac's GPU memory
+    model = SentenceTransformer(embed.MODEL, device="cpu")   # the Mac's GPU runs out of memory and crawls
+    model.max_seq_length = 256   # a one-minute passage is ~200 tokens
     loader = DataLoader(examples, shuffle=True, batch_size=16)
     model.fit(train_objectives=[(loader, losses.MultipleNegativesRankingLoss(model))], epochs=epochs,
               warmup_steps=max(1, len(loader) // 10), optimizer_params={"lr": 1e-5}, show_progress_bar=True)
