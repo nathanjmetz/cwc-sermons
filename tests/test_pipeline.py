@@ -133,3 +133,16 @@ def test_speakers():
     assert f("Biblical Financial Principles | Ryan Jones", "") == ["Ryan Jones"]
     assert f("X", "Rev. Matt Beck - Luke 2") == ["Matthew Beck"]
     assert f("X", "Worship Resources - songs and prayers") == []
+
+
+def test_sermon_located_inside_service():
+    import random
+    rnd = random.Random(1)
+    vocab = [f"w{i}" for i in range(4000)]
+    sermon = [rnd.choice(vocab) for _ in range(900)]
+    worship = [rnd.choice(["holy", "lord", "praise", "amen", "sing"]) for _ in range(600)]
+    service = [(i * 1.0, w) for i, w in enumerate(worship + sermon)]
+    clip = [(i * 1.0, w) for i, w in enumerate(sermon)]
+    a, b = index.sermon_span(service, clip, 900)
+    assert abs(a - 600) < 2 and abs(b - 1500) < 2
+    assert index.sermon_span(service, [(i * 1.0, rnd.choice(vocab)) for i in range(900)], 900) is None

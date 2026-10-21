@@ -29,7 +29,8 @@ SCHEMA = """
 CREATE TABLE videos (
   id TEXT PRIMARY KEY, title TEXT, description TEXT, date TEXT, duration REAL,
   thumbnail TEXT, url TEXT, caption_source TEXT, words INTEGER,
-  speakers TEXT    -- "Steve DeNeff; Emily Vermilya", from the title or description
+  speakers TEXT,   -- "Steve DeNeff; Emily Vermilya", from the title or description
+  sermon_from REAL, sermon_to REAL   -- in a full service, where the sermon itself runs (NULL if unknown)
 );
 CREATE TABLE chunks (
   id INTEGER PRIMARY KEY, video_id TEXT, start REAL, end REAL, text TEXT,
@@ -225,6 +226,41 @@ def skip_duplicate_sermons(infos, has_words):
     return skip
 
 
+def _norm(w):
+    return re.sub(r"[^a-z0-9']", "", w.lower())
+
+
+def sermon_span(service, clip, clip_duration):
+    """Where a sermon cut sits inside its full service, as (from, to) seconds, or None.
+    Four-word runs that occur once in each transcript vote for the offset between them."""
+    G = 4
+    sn = [_norm(w) for _, w in service]
+    seen = {}
+    for i in range(len(sn) - G):
+        seen.setdefault(tuple(sn[i:i + G]), []).append(service[i][0])
+    cn = [_norm(w) for _, w in clip]
+    offs = sorted(seen[g][0] - clip[i][0] for i in range(0, len(cn) - G, 2)
+                  if len(seen.get(g := tuple(cn[i:i + G]), ())) == 1)
+    if len(offs) < 50:   # a different recording, or not the same sermon
+        return None
+    off = max(0.0, offs[len(offs) // 2])
+    return off, off + (clip_duration or clip[-1][0])
+
+
+def sermon_cuts(infos, has_words):
+    """For each full service, the sermon cuts that could be its sermon (same date, or same name within 3 days)."""
+    import datetime as dt
+    day = lambda i: dt.date.fromisoformat(date_of(i)) if date_of(i) else None
+    cuts = [i for i in infos if kind_of(i.get("title")) == "sermon" and day(i) and has_words(i["id"])]
+    out = {}
+    for s in infos:
+        if kind_of(s.get("title")) != "service" or not day(s):
+            continue
+        d, name = day(s), _name(s.get("title"))
+        out[s["id"]] = [c for c in cuts if day(c) == d or (name and _name(c.get("title")) == name and abs((day(c) - d).days) <= 3)]
+    return out
+
+
 def video_words(con, vid):
     """The transcript as (words, deciseconds), each word once. Chunks are
     overlapping windows, so each chunk's shared prefix with the previous one is skipped."""
@@ -253,6 +289,8 @@ def build(db_path=DB, raw_dir=RAW, verbose=True):
     infos = [json.loads(p.read_text()) for p in sorted(raw_dir.glob("*.info.json"))]
     has_words = lambda vid: (raw_dir / f"{vid}.json3").exists()
     skip = skip_duplicate_sermons(infos, has_words)
+    cuts = sermon_cuts(infos, has_words)
+    n_spans = 0
     for info in infos:
         vid = info["id"]
         if vid in skip:
@@ -261,12 +299,16 @@ def build(db_path=DB, raw_dir=RAW, verbose=True):
             continue
         cap_path = raw_dir / f"{vid}.json3"
         words = parse_json3(json.loads(cap_path.read_text())) if cap_path.exists() else []
-        con.execute("INSERT INTO videos VALUES (?,?,?,?,?,?,?,?,?,?)", (
+        span = None
+        for c in cuts.get(vid, []) if words else []:
+            span = span or sermon_span(words, parse_json3(json.loads((raw_dir / f"{c['id']}.json3").read_text())), c.get("duration"))
+        n_spans += span is not None
+        con.execute("INSERT INTO videos VALUES (?,?,?,?,?,?,?,?,?,?,?,?)", (
             vid, info.get("title"), info.get("description") or "", date_of(info), info.get("duration"),
             info.get("thumbnail") or f"https://i.ytimg.com/vi/{vid}/hqdefault.jpg",
             info.get("webpage_url") or f"https://www.youtube.com/watch?v={vid}",
             info.get("caption_source"), len(words),
-            "; ".join(speakers_of(info.get("title"), info.get("description")))))
+            "; ".join(speakers_of(info.get("title"), info.get("description"))), *(span or (None, None))))
         for c in make_chunks(words):
             con.execute("INSERT INTO chunks (video_id, start, end, text, times) VALUES (?,?,?,?,?)", (vid, *c))
         rows = []
@@ -287,7 +329,7 @@ def build(db_path=DB, raw_dir=RAW, verbose=True):
     con.close()
     tmp.replace(db_path)
     if verbose:
-        print(f"Indexed {n_videos} videos ({len(skip)} sermon cuts skipped for their full service), {n_refs} scripture references -> {db_path}")
+        print(f"Indexed {n_videos} videos ({len(skip)} sermon cuts skipped for their full service, the sermon located in {n_spans} services), {n_refs} scripture references -> {db_path}")
 
 
 if __name__ == "__main__":

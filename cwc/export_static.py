@@ -50,7 +50,7 @@ def export(db_path=DB, site=SITE):
     data = site / "data"
 
     videos = [dict(r) for r in con.execute(
-        "SELECT id, title, description, date, duration, thumbnail, speakers FROM videos ORDER BY date DESC")]
+        "SELECT id, title, description, date, duration, thumbnail, speakers, sermon_from, sermon_to FROM videos ORDER BY date DESC")]
     vidx = {v["id"]: i for i, v in enumerate(videos)}
 
     # word index: stem -> {video index: [deciseconds, ...]}, sharded by the stem's first two characters
@@ -86,7 +86,8 @@ def export(db_path=DB, site=SITE):
     dump(data / "meta.json", {
         "videos": [[v["id"], v["title"], v["date"], v["duration"], v["thumbnail"],
                     " ".join(sorted({stem(w) for w in re.findall(r"[\w']+", (v["title"] or "") + " " + (v["description"] or "")[:600])})),
-                    [n for n in (v.get("speakers") or "").split("; ") if n]]
+                    [n for n in (v.get("speakers") or "").split("; ") if n],
+                    [round(v["sermon_from"]), round(v["sermon_to"])] if v.get("sermon_from") is not None else None]
                    for v in videos],
         "books": aliases, "ambiguous": sorted(AMBIGUOUS), "slugs": {b: slug(b) for b in BOOKS},
         "stop": sorted(STOP), "stats": stats(_ro(db_path)),

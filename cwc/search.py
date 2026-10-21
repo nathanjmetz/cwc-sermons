@@ -88,7 +88,8 @@ def fts_query(text, mode="and"):
 
 def _video(con, vid, cache):
     if vid not in cache:
-        cache[vid] = dict(con.execute("SELECT id, title, date, duration, thumbnail, url, speakers FROM videos WHERE id=?",
+        cache[vid] = dict(con.execute("SELECT id, title, date, duration, thumbnail, url, speakers, sermon_from, sermon_to "
+                                      "FROM videos WHERE id=?",
                                       (vid,)).fetchone())
         cache[vid]["speakers"] = _split(cache[vid]["speakers"])
     return cache[vid]
@@ -106,6 +107,14 @@ def _date_ok(v, rng):
     if getattr(rng, "only", None) is not None and v["id"] not in rng.only:
         return False
     return not rng or (v["date"] and rng[0] <= v["date"] <= rng[1])
+
+
+def _time_ok(v, t, rng):
+    """With a speaker chosen, a full service only counts while the sermon runs: the worship
+    before it was led by someone else."""
+    if getattr(rng, "only", None) is None or v.get("sermon_from") is None:
+        return True
+    return v["sermon_from"] - 30 <= t <= v["sermon_to"] + 30
 
 
 def _stem(w):
@@ -178,7 +187,7 @@ def search_scripture(con, q, rng, limit):
         if s <= 0:
             continue
         v = _video(con, row["video_id"], cache)
-        if not _date_ok(v, rng):
+        if not _date_ok(v, rng) or (row["t"] is not None and not _time_ok(v, row["t"], rng)):
             continue
         r = results.setdefault(v["id"], {**v, "score": 0.0, "moments": [], "cited_in": set(), "hits": 0})
         label = row["book"] + (f" {row['chapter']}" if row["chapter"] else "") + \
@@ -217,7 +226,7 @@ def search_text(con, text, rng, limit):
         cache, results = {}, {}
         for row in rows:
             v = _video(con, row["video_id"], cache)
-            if not _date_ok(v, rng):
+            if not _date_ok(v, rng) or not _time_ok(v, row["start"], rng):
                 continue
             r = results.setdefault(v["id"], {**v, "score": 0.0, "moments": [], "hits": 0, "kind": "text"})
             s = -row["rank"]
@@ -243,11 +252,13 @@ def search_text(con, text, rng, limit):
 
 
 def browse_dates(con, rng, limit):
-    rows = con.execute("SELECT id, title, date, duration, thumbnail, url, speakers FROM videos "
+    rows = con.execute("SELECT id, title, date, duration, thumbnail, url, speakers, sermon_from, sermon_to FROM videos "
                        "WHERE date BETWEEN ? AND ? ORDER BY date DESC", tuple(rng)).fetchall()
     rows = [{**dict(r), "speakers": _split(r["speakers"])} for r in rows]
     rows = [r for r in rows if _date_ok(r, rng)][:limit]
-    return [{**r, "score": 0, "start": 0, "moments": [], "kind": "date"} for r in rows]
+    # with a speaker chosen, a full service opens where the sermon starts
+    start = lambda r: int(r["sermon_from"]) if getattr(rng, "only", None) is not None and r["sermon_from"] else 0
+    return [{**r, "score": 0, "start": start(r), "moments": [], "kind": "date"} for r in rows]
 
 
 def search(con, q, limit=20, date_from=None, date_to=None, mode="words", jev=True, speaker=None):
@@ -384,7 +395,7 @@ def search_ideas(con, q, rng, limit, encode=None, refine=8, use_jev=True):
     for k in np.argsort(-sims)[:5000]:
         vid, s_ds, e_ds = meta[k]
         v = _video(con, vid, cache)
-        if not _date_ok(v, rng):
+        if not _date_ok(v, rng) or not _time_ok(v, s_ds / 10, rng):
             continue
         sim = float(sims[k])
         if vid not in results:
