@@ -95,7 +95,9 @@ def export(db_path=DB, site=SITE):
     page = (site / "index.html").read_text()
     page = page.replace("<script>", '<script src="engine.js"></script>\n<script>', 1)
     (site / "index.html").write_text(page)
-    shutil.copy(ROOT / "cwc" / "engine.js", site / "engine.js")
+    # config.json "jev_url": the small function that holds the Jev key (jev-proxy/); empty skips Jev
+    jev_url = json.loads((ROOT / "config.json").read_text()).get("jev_url", "")
+    (site / "engine.js").write_text((ROOT / "cwc" / "engine.js").read_text().replace("__JEV_URL__", jev_url))
     if VECTORS.exists() and PASSAGES.exists():
         p = json.loads(PASSAGES.read_text())
         # passages reference videos by index into meta.videos (smaller than ids)

@@ -3,6 +3,8 @@
 // cwc/search.py. Stemming must match stem() in cwc/export_static.py.
 (() => {
   const BASE = new URL("data/", document.baseURI).href;
+  // Jev double-checks the closest passages; the key lives behind this small function (jev-proxy/)
+  const JEV = "__JEV_URL__", JEV_POOL = 30, JEV_PASSAGES = 60;
   const LEAD_IN = 4, BUCKET = 150; // deciseconds: words in 15s buckets; a "window" is two buckets (30s)
   const cache = {};
   const get = path => cache[path] ??= fetch(BASE + path).then(r => r.ok ? r.json() : null).catch(() => null);
@@ -216,7 +218,39 @@
     const d = out.dims[1];
     return texts.map((_, i) => out.data.subarray(i * d, (i + 1) * d));
   }
+  async function jevRerank(q, results) {
+    if (!JEV.startsWith("https://")) return;
+    const picks = [];
+    for (const r of [...results.values()].sort((a, b) => b.score - a.score))
+      for (const m of [...r.moments].sort((a, b) => b.score - a.score).slice(0, 2)) picks.push([r, m]);
+    picks.splice(JEV_PASSAGES);
+    const txs = Object.fromEntries(await Promise.all([...new Set(picks.map(([r]) => r.id))].map(async id => [id, await get(`tx/${id}.json`)])));
+    const texts = picks.map(([r, m]) => { const tx = txs[r.id]; if (!tx) return "";
+      const toks = tx.w.split(" "); return toks.filter((_, j) => tx.t[j] >= m._s && tx.t[j] <= m._e).join(" ").slice(0, 2400); });
+    let probs;
+    try {
+      window.dispatchEvent(new CustomEvent("cwc-progress", { detail: "Double-checking the closest matches…" }));
+      const res = await fetch(JEV, { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: q, texts: texts.map(t => t || "(no words)") }), signal: AbortSignal.timeout(12000) });
+      if (!res.ok) return;
+      probs = (await res.json()).p;
+    } catch (e) { return; }   // offline, slow, or out of quota: keep the meaning-only order
+    if (!Array.isArray(probs) || probs.length !== picks.length) return;
+    const judged = new Set();
+    picks.forEach(([, m], i) => { m.jev = Math.round(probs[i] * 1000) / 1000; m.score = 0.75 * probs[i] + 0.25 * m.score; judged.add(m); });
+    for (const r of results.values()) {
+      // unjudged moments rank below judged ones; near-misses go when better ones remain
+      for (const m of r.moments) if (!judged.has(m)) m.score *= 0.25;
+      const keep = r.moments.filter(m => (m.jev ?? 1) >= 0.05);
+      r.moments = keep.length ? keep : r.moments.slice(0, 1);
+      r.score = r.moments.length ? Math.max(...r.moments.map(m => m.score)) : 0;
+      r.jev = Math.max(0, ...r.moments.map(m => m.jev ?? 0));
+    }
+  }
+
   async function searchIdeas(q, rng, limit) {
+    const final = limit;
+    if (JEV.startsWith("https://")) limit = Math.max(limit, JEV_POOL);
     await loadIdeas();
     const [qv] = await embed([QUERY_PREFIX + q]);
     const { meta: pm, dim, v } = vectors, n = pm.length;
@@ -242,7 +276,8 @@
         r.moments.push({ ...moment(s / 10, null, "", sim), _s: s, _e: e });
     }
     for (const r of results.values()) { r.score += 0.01 * Math.min(r._n - 1, 5); delete r._n; }
-    const out = finish(results, limit);
+    await jevRerank(q, results);
+    const out = finish(results, final);
     await Promise.all(out.map(async (r, i) => {
       const tx = await get(`tx/${r.id}.json`);
       const toks = tx ? tx.w.split(" ") : [];
@@ -300,7 +335,7 @@
     const url = new URL(typeof input === "string" ? input : input.url, location.href);
     if (url.pathname.endsWith("/api/search")) {
       const p = url.searchParams;
-      try { return json(await search(p.get("q"), Math.min(+(p.get("limit") || 20), 100), p.get("from"), p.get("to"))); }
+      try { return json(await search(p.get("q"), Math.min(+(p.get("limit") || 20), 100), p.get("from"), p.get("to"), p.get("mode"))); }
       catch (e) { return json({ error: String(e) }); }
     }
     if (url.pathname.endsWith("/api/stats")) return json((await loadMeta()).stats);
