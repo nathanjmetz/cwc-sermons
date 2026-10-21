@@ -181,6 +181,7 @@ def cmd_eval():
             after = after[:10]
             row = {"q": q, "raw_on_point": sum(p >= .5 for p in raw), "raw_mean": float(np.mean(raw)),
                    "jev_on_point": sum(p >= .5 for p in after), "jev_mean": float(np.mean(after)),
+                   "raw_clear": sum(p >= .9 for p in raw), "jev_clear": sum(p >= .9 for p in after),
                    "top3": [round(p, 2) for p in after[:3]]}
             report[name].append(row)
             line.append(f"{name} {row['raw_on_point']:2d}/10 raw, {row['jev_on_point']:2d}/10 after Jev")
@@ -188,7 +189,9 @@ def cmd_eval():
     for name in report:
         rows = report[name]
         print(f"{name:5s}: on point in top 10, meaning alone {np.mean([r['raw_on_point'] for r in rows]):.2f}, "
-              f"after Jev {np.mean([r['jev_on_point'] for r in rows]):.2f}; mean score {np.mean([r['jev_mean'] for r in rows]):.3f}")
+              f"after Jev {np.mean([r['jev_on_point'] for r in rows]):.2f}; clearly on point (Jev 0.9+), meaning alone "
+              f"{np.mean([r['raw_clear'] for r in rows]):.2f}, after Jev {np.mean([r['jev_clear'] for r in rows]):.2f}; "
+              f"mean score {np.mean([r['jev_mean'] for r in rows]):.3f}")
     (OUT / "eval.json").write_text(json.dumps(report, indent=1))
 
 
