@@ -114,7 +114,7 @@ def cmd_train(epochs=1):
             by_q.setdefault(q, []).append((k, p))
     examples = []
     for q, kp in by_q.items():
-        pos = [k for k, p in kp if p >= 0.6]
+        pos = [k for k, p in kp if p >= 0.9]   # Jev is generous above 0.5; train only on clear calls
         neg = [k for k, p in kp if p <= 0.2]
         if not pos or not neg:
             continue
