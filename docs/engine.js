@@ -16,10 +16,12 @@
     if (w.length > 4) w = w.replace(/(ing|ed|es|s|ness|ful|ly)$/, "");
     return w.slice(0, 7);
   };
-  const video = i => { const [id, title, date, duration, thumbnail, , speakers = []] = meta.videos[i];
-    return { id, title, date, duration, thumbnail, speakers, url: `https://www.youtube.com/watch?v=${id}` }; };
+  const video = i => { const [id, title, date, duration, thumbnail, , speakers = [], span = null] = meta.videos[i];
+    return { id, title, date, duration, thumbnail, speakers, span, url: `https://www.youtube.com/watch?v=${id}` }; };
   let only = null;   // ids a speaker filter allows, for the search in progress
   const dateOk = (v, rng) => (!only || only.has(v.id)) && (!rng || (v.date && rng[0] <= v.date && v.date <= rng[1]));
+  // with a speaker chosen, a full service only counts while the sermon runs: someone else led the worship
+  const timeOk = (v, t) => !only || !v.span || (t >= v.span[0] - 30 && t <= v.span[1] + 30);
   const pad = n => String(n).padStart(2, "0");
   const iso = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
   const addDays = (d, n) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
@@ -106,7 +108,7 @@
       const s = refScore(q, row);
       if (s <= 0) continue;
       const v = video(row[0]);
-      if (!dateOk(v, rng)) continue;
+      if (!dateOk(v, rng) || (row[4] != null && !timeOk(v, row[4]))) continue;
       const r = results.get(v.id) || { ...v, score: 0, moments: [], cited_in: new Set(), hits: 0, desc: 0, kind: "scripture" };
       results.set(v.id, r);
       const lab = label({ book: q.book, chapter: row[1], vs: row[2], ve: row[3] });
@@ -161,6 +163,7 @@
         // count each term per 15s bucket, then score 30s windows (bucket b + b+1)
         const buckets = new Map();
         plist.forEach((p, j) => (p.get(i) || []).forEach(t => {
+          if (!timeOk(v, t / 10)) return;
           const b = Math.floor(t / BUCKET);
           if (!buckets.has(b)) buckets.set(b, { n: stems.map(() => 0), first: t });
           const e = buckets.get(b); e.n[j]++; e.first = Math.min(e.first, t);
@@ -268,7 +271,7 @@
     const results = new Map();
     for (const k of order) {
       const [vi, s, e] = pm[k], vid = video(vi);
-      if (!dateOk(vid, rng)) continue;
+      if (!dateOk(vid, rng) || !timeOk(vid, s / 10)) continue;
       const sim = sims[k];
       if (!results.has(vid.id)) {
         if (results.size >= limit) continue;
@@ -329,7 +332,7 @@
       if (!results.length && ref.chapter == null) results = await searchText(text, rng, limit);
     } else if (text) results = await searchText(text, rng, limit);
     else if (rng || only) results = meta.videos.map((_, i) => video(i)).filter(v => dateOk(v, rng)).slice(0, limit)
-      .map(v => ({ ...v, score: 0, start: 0, moments: [], kind: "date" }));
+      .map(v => ({ ...v, score: 0, start: only && v.span ? v.span[0] : 0, moments: [], kind: "date" }));
     else results = [];
     return { ...info, count: results.length, results };
   }
