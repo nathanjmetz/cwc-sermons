@@ -197,6 +197,13 @@ button:active, .chip:active, .item:active, .moment:active { transform: scale(.98
         animation: spin .7s linear infinite; vertical-align: -1px; margin-right: 6px; }
 @keyframes spin { to { transform: rotate(360deg); } }
 @media (min-width: 1800px) { :root { --rail: 360px; --list: 440px; } .sermon { max-width: 1280px; } .track { font-size: 34px; } .ticker { height: 84px; } }
+.notice { position: fixed; left: 50%; top: calc(var(--bar) + 14px); z-index: 50; max-width: min(92vw, 460px);
+          background: #fff; color: #1A3368; border-left: 4px solid var(--cwc-green, #70BF44); border-radius: 10px;
+          padding: 14px 18px; box-shadow: 0 12px 32px rgba(10,30,60,.18); font-size: 15px; line-height: 1.45;
+          opacity: 0; transform: translate(-50%, -8px); pointer-events: none;
+          transition: opacity .25s ease-out, transform .25s var(--ease); }
+.notice.show { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
+.notice strong { display: block; margin-bottom: 2px; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-delay: 0s !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
 }
@@ -231,6 +238,8 @@ button:active, .chip:active, .item:active, .moment:active { transform: scale(.98
     </details>
   </div>
 </header>
+
+<div class="notice" id="notice" role="status" aria-live="polite"><strong>This is a preview.</strong>It's only modeled after the College Wes site, so it isn't the actual site. Only the Sermons page works here.</div>
 
 <div class="app" id="app">
   <aside class="rail">
@@ -293,6 +302,22 @@ button:active, .chip:active, .item:active, .moment:active { transform: scale(.98
 </footer>
 
 <script>
+// Preview only: the church's other pages aren't part of this site, so say so instead of leaving.
+(() => {
+  const note = document.getElementById("notice");
+  let timer;
+  document.querySelectorAll(".topbar a").forEach(a => {
+    if (a.getAttribute("href") === "./") return;
+    a.addEventListener("click", e => {
+      e.preventDefault();
+      note.classList.add("show");
+      clearTimeout(timer);
+      timer = setTimeout(() => note.classList.remove("show"), 4500);
+    });
+  });
+  note.addEventListener("click", () => note.classList.remove("show"));
+})();
+
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const clock = t => { t = Math.max(0, t|0); const h = t/3600|0, m = (t%3600)/60|0, s = t%60;
