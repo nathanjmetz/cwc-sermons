@@ -560,10 +560,10 @@ const niceTitle = t => { let p = (t || "").split(/\s[|-]\s|\|/).map(s => s.trim(
 const kindOf = t => /^\s*service\s*\|/i.test(t || "") ? "Full service" : "";
 
 const MODES = {
-  words: { ph: 'John 3:16, "prodigal son", March 2024',
+  words: { ph: 'John 3:16, "grace", 2024',
            hint: "Finds the exact words. Put a phrase in quotes to keep the words together.",
            ex: ["John 3:16", "Leviticus 19", "forgiveness", '"the atonement"', "October 2026"] },
-  ideas: { ph: "Describe an idea, theme, or situation",
+  ideas: { ph: "Describe an idea or theme",
            hint: "Finds what was meant, not just the words. Longer descriptions work well.",
            ex: ["the woman at the well and how Jesus treated women", "how to forgive someone who betrayed you",
                 "doubt and faith in the middle of grief", "what holiness looks like in ordinary life", "God's heart for the poor"] },
