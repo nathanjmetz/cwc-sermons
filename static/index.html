@@ -143,7 +143,7 @@ mark { background: var(--mark); color: inherit; border-radius: 3px; padding: 0 2
 .empty { color: var(--muted); padding: 28px 8px; font-size: 14px; text-align: center; }
 
 /* ---- main / sermon ---- */
-.main { overflow-y: auto; min-width: 0; background: var(--bg); container-type: inline-size; position: relative; }
+.main { overflow-y: auto; min-width: 0; background: var(--bg); container: main / inline-size; position: relative; }
 
 /* show or hide the two left panels */
 .panes { position: sticky; top: 0; z-index: 5; display: flex; gap: 6px; padding: 10px 28px 0; background: linear-gradient(var(--bg) 70%, transparent); }
@@ -187,7 +187,7 @@ mark { background: var(--mark); color: inherit; border-radius: 3px; padding: 0 2
 .side { min-width: 0; }
 .side .card { margin-top: 0; }
 /* wide: video and moments side by side, the moments list scrolls within the video's height */
-@container (min-width: 900px) {
+@container main (min-width: 900px) {
   .sgrid { grid-template-columns: minmax(0, min(66%, calc((100dvh - var(--bar) - 300px) * 16 / 9))) minmax(300px, 1fr); }
   .stage { max-width: none; }
   .side { position: relative; }
@@ -302,8 +302,8 @@ footer a:hover { text-decoration: underline; }
   form { gap: 10px; }
   .hint { font-size: 12.5px; }
 }
-.side { container-type: inline-size; }
-@container (max-width: 420px) { .cardhead .sub { display: none; } }
+.side { container: side / inline-size; }
+@container side (max-width: 420px) { .cardhead .sub { display: none; } }
 @media (max-width: 1240px) { :root { --rail: 300px; --list: 350px; } .item { grid-template-columns: 104px 1fr; } }
 @media (max-width: 1240px) and (min-width: 861px) { .how { grid-template-columns: 1fr; } }
 /* Phone and small tablet: one pane at a time */
