@@ -181,18 +181,24 @@ mark { background: var(--mark); color: inherit; border-radius: 3px; padding: 0 2
 .how .x { display: block; font-size: 14px; color: var(--muted); }
 .how .try { display: inline-flex; align-items: center; gap: 6px; margin-top: 14px; font-size: 14px; font-weight: 700; color: var(--blue); }
 
-.sermon { padding: 10px 28px 48px; }
-.sgrid { display: grid; gap: 20px; margin-top: 16px; }
-.stage { width: 100%; max-width: max(520px, calc((100dvh - var(--bar) - 330px) * 16 / 9)); margin-inline: auto; }
+/* The sermon fills the space under the toolbar: header, then video and side card, then the ticker
+   docked at the bottom. --chrome is everything that isn't video, so the video's height can be
+   worked out from the window's height. */
+.main { display: flex; flex-direction: column; --chrome: 228px; }
+.sermon { padding: 6px 28px 0; flex: 1 0 auto; display: flex; flex-direction: column; }
+.sgrid { display: grid; gap: 20px; margin-top: 14px; }
+.stage { width: 100%; max-width: max(520px, calc((100dvh - var(--bar) - var(--chrome)) * 16 / 9)); margin-inline: auto; }
 .side { min-width: 0; }
 .side .card { margin-top: 0; }
-/* wide: video and moments side by side, the moments list scrolls within the video's height */
+/* wide: video and side card share a row that runs down to the ticker; the card scrolls inside */
 @container main (min-width: 900px) {
-  .sgrid { grid-template-columns: minmax(0, min(66%, calc((100dvh - var(--bar) - 300px) * 16 / 9))) minmax(300px, 1fr); }
+  .sgrid { flex: 1 0 auto; align-items: start;
+           grid-template-columns: minmax(0, min(calc(100% - 360px), max(440px, calc((100dvh - var(--bar) - var(--chrome)) * 16 / 9)))) minmax(340px, 1fr); }
   .stage { max-width: none; }
-  .side { position: relative; }
+  .side { position: relative; align-self: stretch; min-height: 320px; }
   .side .card { position: absolute; inset: 0; display: flex; flex-direction: column; }
   .side .moments { overflow-y: auto; flex: 1; min-height: 0; align-content: start; padding: 2px; margin: 16px -2px 0; }
+  .side .full { flex: 1; min-height: 0; max-height: none; }
 }
 .back { display: none; border: 0; background: none; color: var(--blue); font-weight: 700; padding: 0 0 12px; cursor: pointer; }
 /* keep the video and ticker short enough that the moments show without scrolling */
@@ -225,9 +231,13 @@ mark { background: var(--mark); color: inherit; border-radius: 3px; padding: 0 2
 .sermon h2 { color: var(--deep); font-size: 26px; font-weight: 800; letter-spacing: -.015em; line-height: 1.25; margin: 0 0 2px;
              white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sermon .meta { color: var(--muted); font-size: 14px; }
-.ytbtn { flex: none; display: inline-flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 700; text-decoration: none; color: var(--deep);
-         border: 1.5px solid var(--line); border-radius: 50px; padding: 8px 16px; background: #fff; transition: border-color .18s ease-out, background .18s ease-out; }
-.ytbtn:hover { border-color: var(--sky); background: var(--tint); }
+.acts { flex: none; display: flex; gap: 8px; }
+.iconbtn { width: 44px; height: 44px; display: grid; place-items: center; border-radius: 50%; border: 1.5px solid var(--line); background: #fff;
+           color: var(--deep); cursor: pointer; padding: 0; box-shadow: var(--shadow-sm); }
+.iconbtn svg { width: 20px; height: 20px; }
+.iconbtn:hover { border-color: var(--sky); background: var(--tint); }
+.iconbtn[aria-pressed=true] { background: var(--deep); border-color: var(--deep); color: #fff; }
+.iconbtn:focus-visible { outline: 3px solid var(--sky); outline-offset: 2px; }
 
 .card { border: 1px solid var(--line); border-radius: var(--r-lg); background: #fff; padding: 18px 20px 20px; margin-top: 20px; box-shadow: var(--shadow-sm); }
 .cardhead { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
@@ -266,7 +276,9 @@ mark { background: var(--mark); color: inherit; border-radius: 3px; padding: 0 2
 .moment .tx { font-size: 13.5px; line-height: 1.55; color: var(--ink); display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
 
 /* Karaoke ticker: one line of the sermon gliding past, the spoken word lit */
-.ticker { margin-top: 16px; position: relative; height: 76px; overflow: hidden; border-radius: var(--r); background: var(--deep); }
+/* the ticker stays docked at the bottom of the view; a soft white edge lets content slide under it */
+.dock { position: sticky; bottom: 0; z-index: 4; margin-top: auto; padding: 16px 0 16px; background: linear-gradient(transparent, var(--bg) 16px); }
+.ticker { position: relative; height: 76px; overflow: hidden; border-radius: var(--r); background: var(--deep); }
 .lane { position: absolute; inset: 0; overflow: hidden;
         -webkit-mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
         mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent); }
@@ -278,7 +290,7 @@ mark { background: var(--mark); color: inherit; border-radius: 3px; padding: 0 2
 .track span.hit { box-shadow: inset 0 -3px 0 var(--green); }
 .ticker .idle { position: absolute; inset: 0; display: grid; place-items: center; color: rgba(255,255,255,.7); font-size: 14px; }
 
-.full { margin-top: 14px; max-height: 440px; overflow-y: auto; border-radius: var(--r); background: var(--soft); padding: 4px 22px;
+.full { max-height: min(60vh, 560px); overflow-y: auto; border-radius: var(--r); background: var(--soft); padding: 4px 20px; margin: 0 -4px;
         font-family: "Source Serif 4", Georgia, serif; font-size: 17.5px; line-height: 1.8; scroll-behavior: smooth; }
 .full p { margin: 14px 0; color: #6E7880; transition: color .6s ease; }
 .full p.cur { color: var(--ink); }
@@ -318,14 +330,15 @@ footer a:hover { text-decoration: underline; }
   .app.viewing .rail, .app.viewing .list { display: none; }
   .app.viewing .main { display: block; }
   .back { display: block; }
-  .sermon { padding: 16px; }
+  .sermon { padding: 16px 16px 0; }
+  .main { overflow: visible; }
   .panes { display: none; }
   .rail > *, #results > *, .list .status { min-width: 0; }
   .sermon h2 { white-space: normal; }
   .player { border-radius: var(--r); }
   .stage { max-width: none; }
   .clock { font-size: 12px; } .controls { gap: 6px; padding: 24px 8px 6px; }
-  .shead { flex-direction: column; gap: 10px; }
+  .shead { align-items: flex-start; gap: 12px; }
   .sermon h2 { font-size: 22px; }
   .card { padding: 16px; }
   .welcome { display: none; }
@@ -333,7 +346,7 @@ footer a:hover { text-decoration: underline; }
   .moments { grid-template-columns: 1fr; }
   .cardhead .sub { display: none; }
 }
-@media (min-width: 1800px) { :root { --rail: 380px; --list: 460px; } .track { font-size: 34px; } .ticker { height: 88px; } }
+@media (min-width: 1800px) { :root { --rail: 380px; --list: 460px; } .track { font-size: 34px; } .ticker { height: 88px; } .main { --chrome: 240px; } }
 
 /* ---------- motion: quick for clicks (0.1–0.3s ease-out), up to 0.5s for big moves ---------- */
 button, .chip, .item, .moment, .go, .nav a, .how button { transition: background-color .18s ease-out, color .18s ease-out, border-color .18s ease-out, box-shadow .18s ease-out, transform .18s var(--ease); }
@@ -463,7 +476,10 @@ button:active, .chip:active, .item:active, .moment:active, .how button:active { 
       <button class="back" id="back">← Results</button>
       <div class="shead">
         <div><h2 id="s-title"></h2><div class="meta" id="s-meta"></div></div>
-        <a class="ytbtn" id="yt" target="_blank" rel="noopener" href="#"><svg class="i" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M23 7.2a3 3 0 0 0-2.1-2.1C19 4.6 12 4.6 12 4.6s-7 0-8.9.5A3 3 0 0 0 1 7.2 31 31 0 0 0 .5 12 31 31 0 0 0 1 16.8a3 3 0 0 0 2.1 2.1c1.9.5 8.9.5 8.9.5s7 0 8.9-.5a3 3 0 0 0 2.1-2.1 31 31 0 0 0 .5-4.8 31 31 0 0 0-.5-4.8ZM9.8 15.1V8.9l5.7 3.1-5.7 3.1Z"/></svg>Open on YouTube</a>
+        <div class="acts">
+          <button type="button" class="iconbtn" id="toggle-full" aria-pressed="false" aria-label="Full transcript" title="Full transcript"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5Z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg></button>
+          <a class="iconbtn" id="yt" target="_blank" rel="noopener" href="#" aria-label="Open on YouTube" title="Open on YouTube"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M23 7.2a3 3 0 0 0-2.1-2.1C19 4.6 12 4.6 12 4.6s-7 0-8.9.5A3 3 0 0 0 1 7.2 31 31 0 0 0 .5 12 31 31 0 0 0 1 16.8a3 3 0 0 0 2.1 2.1c1.9.5 8.9.5 8.9.5s7 0 8.9-.5a3 3 0 0 0 2.1-2.1 31 31 0 0 0 .5-4.8 31 31 0 0 0-.5-4.8ZM9.8 15.1V8.9l5.7 3.1-5.7 3.1Z"/></svg></a>
+        </div>
       </div>
       <div class="sgrid">
         <div class="stage">
@@ -484,14 +500,13 @@ button:active, .chip:active, .item:active, .moment:active, .how button:active { 
           <div class="cardhead"><h3 id="m-head"></h3><span class="sub" id="m-sub"></span></div>
           <div class="timeline" id="timeline" aria-hidden="true"><div class="bar"></div><div class="prog" id="prog"></div><div class="head" id="phead"></div><div id="marks"></div><div class="ends"><span>0:00</span><span id="t-end"></span></div></div>
           <div class="moments" id="moments"></div>
+          <div class="full" id="full" hidden></div>
         </section>
         </aside>
       </div>
-      <div class="ticker" id="ticker" aria-hidden="true"><div class="lane"><div class="track" id="track"></div></div><div class="idle" id="idle">The words appear here as the sermon plays</div></div>
-      <section class="card" aria-labelledby="live-h">
-        <div class="cardhead" style="margin:0"><h3 id="live-h">Full transcript</h3><button type="button" class="linkbtn" id="toggle-full">Show it</button></div>
-        <div class="full" id="full" hidden></div>
-      </section>
+      <div class="dock">
+        <div class="ticker" id="ticker" aria-hidden="true"><div class="lane"><div class="track" id="track"></div></div><div class="idle" id="idle">The words appear here as the sermon plays</div></div>
+      </div>
     </article>
   </main>
 </div>
@@ -710,9 +725,9 @@ async function open(r, at = null) {
   const best = r.moments[0];
   ordered = [...r.moments].sort((a, b) => a.t - b.t);
   const n = ordered.length;
-  $("#m-card").hidden = !n;
-  $("#m-head").textContent = n > 1 ? `${n} moments in this sermon` : "Where it comes up";
-  $("#m-sub").textContent = n > 1 ? "Tap one to jump there" : "";
+  momentsHead = [n > 1 ? `${n} moments in this sermon` : "Where it comes up", n > 1 ? "Tap one to jump there" : ""];
+  $("#toggle-full").hidden = !n;   // with no moments to show, the card is the transcript
+  setReading(reading || !n);
   const dur = r.duration || Math.max(...ordered.map(m => m.t)) + 60;
   $("#t-end").textContent = clock(dur);
   $("#timeline").dataset.dur = dur;
@@ -879,7 +894,15 @@ function timeline(t) {
 
 /* ---------- full transcript ---------- */
 let paras = [], curPara = -1;
-$("#toggle-full").onclick = () => { const f = $("#full"); f.hidden = !f.hidden; $("#toggle-full").textContent = f.hidden ? "Show it" : "Hide it"; if (!f.hidden) buildFull(); };
+// the side card shows either the moments or the whole transcript; the header button switches them
+let reading = false, momentsHead = ["", ""];
+function setReading(on) {
+  $("#full").hidden = !on; $("#timeline").hidden = on; $("#moments").hidden = on;
+  $("#toggle-full").setAttribute("aria-pressed", on);
+  [$("#m-head").textContent, $("#m-sub").textContent] = on ? ["Full transcript", "Tap any word to jump there"] : momentsHead;
+  if (on) buildFull(); else requestAnimationFrame(spreadMarks);
+}
+$("#toggle-full").onclick = () => { reading = $("#toggle-full").getAttribute("aria-pressed") !== "true"; setReading(reading); };
 function buildFull() {
   if (!tx) return;
   paras = []; let start = 0;
