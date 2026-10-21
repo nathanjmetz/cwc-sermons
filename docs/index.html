@@ -187,7 +187,8 @@ mark { background: var(--mark); color: inherit; border-radius: 3px; padding: 0 2
 .main { display: flex; flex-direction: column; --chrome: 238px; }
 .sermon { padding: 6px 28px 0; flex: 1 0 auto; display: flex; flex-direction: column; }
 .sgrid { display: grid; gap: 20px; margin-top: 14px; }
-.stage { width: 100%; max-width: max(520px, calc((100dvh - var(--bar) - var(--chrome)) * 16 / 9)); margin-inline: auto; }
+/* one column (both panels open on a mid-size screen): leave ~220px under the video so the moments show without scrolling */
+.stage { width: 100%; max-width: max(520px, calc((100dvh - var(--bar) - var(--chrome) - 220px) * 16 / 9)); margin-inline: auto; }
 .side { min-width: 0; }
 .side .card { margin-top: 0; }
 /* wide: video and side card share a row that runs down to the ticker; the card scrolls inside */
@@ -199,6 +200,9 @@ mark { background: var(--mark); color: inherit; border-radius: 3px; padding: 0 2
   .side .card { position: absolute; inset: 0; display: flex; flex-direction: column; }
   .side .moments { overflow-y: auto; flex: 1; min-height: 0; align-content: start; padding: 2px; margin: 16px -2px 0; }
   .side .full { flex: 1; min-height: 0; max-height: none; }
+  /* lists that scroll inside the card fade at their edges instead of slicing a card in half */
+  .side .moments, .side .full, .under .full { -webkit-mask-image: linear-gradient(transparent, #000 18px, #000 calc(100% - 18px), transparent);
+                                              mask-image: linear-gradient(transparent, #000 18px, #000 calc(100% - 18px), transparent); }
   /* when the video can't grow any taller, the transcript follows along in the room beneath it */
   .stage { align-self: stretch; display: flex; flex-direction: column; }
   .under { flex: 1; position: relative; margin-top: 20px; }
@@ -557,10 +561,10 @@ const niceTitle = t => { let p = (t || "").split(/\s[|-]\s|\|/).map(s => s.trim(
 const kindOf = t => /^\s*service\s*\|/i.test(t || "") ? "Full service" : "";
 
 const MODES = {
-  words: { ph: 'John 3:16, "prodigal son", March 2024',
+  words: { ph: 'John 3:16, "grace", 2024',
            hint: "Finds the exact words. Put a phrase in quotes to keep the words together.",
            ex: ["John 3:16", "Leviticus 19", "forgiveness", '"the atonement"', "October 2026"] },
-  ideas: { ph: "Describe an idea, theme, or situation",
+  ideas: { ph: "Describe an idea or theme",
            hint: "Finds what was meant, not just the words. Longer descriptions work well.",
            ex: ["the woman at the well and how Jesus treated women", "how to forgive someone who betrayed you",
                 "doubt and faith in the middle of grief", "what holiness looks like in ordinary life", "God's heart for the poor"] },
@@ -919,7 +923,7 @@ function setReading(on) {
 function place() {
   if ($("#sermon").hidden) return;
   const wide = getComputedStyle($(".sgrid")).gridTemplateColumns.split(" ").length > 1;
-  const below = wide && hasMoments && $(".side").offsetHeight - $("#pl").offsetHeight - 20 >= 200;
+  const below = wide && hasMoments && $(".side").offsetHeight - $("#pl").offsetHeight - 20 >= 96;
   $("#sermon").classList.toggle("below", below);
   if ($("#full").parentNode !== (below ? $("#under") : $("#m-card"))) {
     (below ? $("#under") : $("#m-card")).append($("#full")); curPara = -1;
