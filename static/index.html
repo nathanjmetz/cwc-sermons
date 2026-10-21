@@ -698,7 +698,10 @@ async function run(push = true) {
   results = res.results;
   const noun = res.count === 1 ? "sermon" : "sermons";
   const what = res.scripture ? `citing <b>${esc(res.scripture)}</b>` : mode === "ideas" ? `closest to your idea` : `for <b>${esc(query || "those dates")}</b>`;
-  $("#status").innerHTML = `${res.count} ${noun} ${query || res.scripture ? what : ""}${who ? ` by <b>${esc(who)}</b>` : ""}`;
+  const near = res.scripture && results.length && results.every(r => r.near);
+  $("#status").innerHTML = near
+    ? `No sermon cites <b>${esc(res.scripture)}</b> itself. ${res.count === 1 ? "This one mentions" : "These mention"} the book${who ? ` (by <b>${esc(who)}</b>)` : ""}:`
+    : `${res.count} ${noun} ${query || res.scripture ? what : ""}${who ? ` by <b>${esc(who)}</b>` : ""}`;
   if (matchMedia("(max-width: 860px)").matches && push) $("#status").scrollIntoView({ behavior: reduceMotion.matches ? "auto" : "smooth" });
   $("#results").innerHTML = results.map(item).join("") ||
     `<div class="empty">Nothing yet. ${mode === "words" ? "Try a broader word, a chapter instead of a verse, or switch to Ideas." : "Try describing it another way, or clear the dates."}</div>`;

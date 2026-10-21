@@ -191,7 +191,8 @@ def search_scripture(con, q, rng, limit):
         v = _video(con, row["video_id"], cache)
         if not _date_ok(v, rng) or (row["t"] is not None and not _time_ok(v, row["t"], rng)):
             continue
-        r = results.setdefault(v["id"], {**v, "score": 0.0, "moments": [], "cited_in": set(), "hits": 0})
+        r = results.setdefault(v["id"], {**v, "score": 0.0, "moments": [], "cited_in": set(), "hits": 0, "best": 0.0})
+        r["best"] = max(r["best"], s)
         label = row["book"] + (f" {row['chapter']}" if row["chapter"] else "") + \
             (f":{row['vs']}" if row["vs"] else "") + (f"-{row['ve']}" if row["ve"] and row["ve"] != row["vs"] else "")
         if row["t"] is None:
@@ -207,6 +208,8 @@ def search_scripture(con, q, rng, limit):
         r["score"] += 0.25 * math.log1p(r.pop("hits")) + 0.5 * (r.pop("desc_score", 0) >= 2.6)
         r["cited_in"] = sorted(r["cited_in"])
         r["kind"] = "scripture"
+        # a chapter or verse was asked for, but this sermon only touches the book (or a far-off chapter)
+        r["near"] = q.chapter is not None and r.pop("best") < 0.5
         if not r["moments"]:
             # only cited in the description: start where the book is first read or named aloud
             row = said.get(r["id"]) and _ok_row(said[r["id"]], r, rng)
