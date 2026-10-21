@@ -180,10 +180,12 @@ def _ref_score(q, row):
 
 
 def search_scripture(con, q, rng, limit):
-    cache, results = {}, {}
+    cache, results, said = {}, {}, {}
     rows = con.execute("SELECT * FROM refs WHERE book=?", (q.book,)).fetchall()
     for row in rows:
         s = _ref_score(q, row)
+        if row["t"] is not None and (row["video_id"] not in said or row["t"] < said[row["video_id"]]["t"]):
+            said[row["video_id"]] = row   # earliest time this book comes up out loud, any chapter
         if s <= 0:
             continue
         v = _video(con, row["video_id"], cache)
@@ -205,7 +207,29 @@ def search_scripture(con, q, rng, limit):
         r["score"] += 0.25 * math.log1p(r.pop("hits")) + 0.5 * (r.pop("desc_score", 0) >= 2.6)
         r["cited_in"] = sorted(r["cited_in"])
         r["kind"] = "scripture"
+        if not r["moments"]:
+            # only cited in the description: start where the book is first read or named aloud
+            row = said.get(r["id"]) and _ok_row(said[r["id"]], r, rng)
+            if row:
+                lab = row["book"] + (f" {row['chapter']}" if row["chapter"] else "")
+                r["moments"].append(_moment(row["t"], lab, row["context"], 0))
+            else:
+                hit = _first_said(con, r["id"], q.book.split()[-1])
+                if hit:
+                    r["moments"].append(_moment(hit[0], q.book, hit[1], 0))
     return _finish(results, limit)
+
+
+def _ok_row(row, v, rng):
+    return row if _time_ok(v, row["t"], rng) else None
+
+
+def _first_said(con, vid, word):
+    """(seconds, snippet) where a word is first spoken in a video, or None."""
+    row = con.execute("SELECT c.start, c.text, c.times FROM chunks_fts JOIN chunks c ON c.id = chunks_fts.rowid "
+                      "WHERE chunks_fts MATCH ? AND c.video_id = ? ORDER BY c.start LIMIT 1",
+                      (f'"{word}"', vid)).fetchone()
+    return (_locate(row, [word]), _snippet(row["text"], [word])) if row else None
 
 
 # ---------- text search ----------

@@ -297,7 +297,7 @@ mark { background: var(--mark); color: inherit; border-radius: 3px; padding: 0 2
 
 .full { max-height: min(60vh, 560px); overflow-y: auto; border-radius: var(--r); background: var(--soft); padding: 4px 20px; margin: 0 -4px;
         font-family: "Source Serif 4", Georgia, serif; font-size: 17.5px; line-height: 1.8; scroll-behavior: smooth; }
-.full p { margin: 14px 0; color: #6E7880; transition: color .6s ease; }
+.full p { margin: 14px 0; color: var(--muted); transition: color .6s ease; }
 .full p.cur { color: var(--ink); }
 .full p .ts { font-family: "Open Sans", sans-serif; font-size: 12px; font-weight: 700; color: var(--blue); margin-right: 8px; cursor: pointer; }
 .full p .w { cursor: pointer; border-radius: 3px; }
@@ -506,7 +506,7 @@ button:active, .chip:active, .item:active, .moment:active, .how button:active { 
           <div class="cardhead"><h3 id="m-head"></h3><span class="sub" id="m-sub"></span></div>
           <div class="timeline" id="timeline" aria-hidden="true"><div class="bar"></div><div class="prog" id="prog"></div><div class="head" id="phead"></div><div id="marks"></div><div class="ends"><span>0:00</span><span id="t-end"></span></div></div>
           <div class="moments" id="moments"></div>
-          <div class="full" id="full" hidden></div>
+          <div class="full" id="full" tabindex="0" aria-label="Full transcript" hidden></div>
         </section>
         </aside>
       </div>
