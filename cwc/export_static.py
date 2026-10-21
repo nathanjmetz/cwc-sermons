@@ -99,7 +99,14 @@ def export(db_path=DB, site=SITE):
     (site / "index.html").write_text(page)
     # config.json "jev_url": the small function that holds the Jev key (jev-proxy/); empty skips Jev
     jev_url = json.loads((ROOT / "config.json").read_text()).get("jev_url", "")
-    (site / "engine.js").write_text((ROOT / "cwc" / "engine.js").read_text().replace("__JEV_URL__", jev_url))
+    # the tuned Ideas model ships with the site once cwc.train_ideas has switched search to it
+    from .embed import tuned
+    web = db_path.parent / "train" / "web-model" / "cwc-ideas"
+    ideas_model = "cwc-ideas" if tuned() and web.exists() else ""
+    if ideas_model:
+        shutil.copytree(web, data / "model" / "cwc-ideas", dirs_exist_ok=True)
+    (site / "engine.js").write_text((ROOT / "cwc" / "engine.js").read_text().replace("__JEV_URL__", jev_url)
+                                    .replace("__IDEAS_MODEL__", ideas_model))
     if VECTORS.exists() and PASSAGES.exists():
         p = json.loads(PASSAGES.read_text())
         # passages reference videos by index into meta.videos (smaller than ids)

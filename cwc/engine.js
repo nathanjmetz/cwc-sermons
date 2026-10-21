@@ -214,14 +214,18 @@
 
   // ---------- ideas (meaning, not words) ----------
   // Same model as cwc/embed.py, run in the browser. Downloaded once (~35 MB), then cached.
+  const IDEAS_MODEL = "__IDEAS_MODEL__";
   const QUERY_PREFIX = "Represent this sentence for searching relevant passages: ";
   let extractor, vectors;
   const progress = text => window.dispatchEvent(new CustomEvent("cwc-progress", { detail: text }));
   async function loadIdeas() {
     if (!extractor) {
       progress("Loading the idea-search model (one-time download, about 35 MB)…");
-      const { pipeline } = await import("https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.0.2");
-      extractor = await pipeline("feature-extraction", "Xenova/bge-small-en-v1.5", { dtype: "q8" });
+      const { pipeline, env } = await import("https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.0.2");
+      if (IDEAS_MODEL) {   // tuned on these sermons (cwc/train_ideas.py), served with the site
+        env.localModelPath = BASE + "model/"; env.allowRemoteModels = false;
+        extractor = await pipeline("feature-extraction", IDEAS_MODEL, { dtype: "q8" });
+      } else extractor = await pipeline("feature-extraction", "Xenova/bge-small-en-v1.5", { dtype: "q8" });
     }
     if (!vectors) {
       progress("Loading sermon fingerprints…");

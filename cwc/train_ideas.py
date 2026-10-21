@@ -3,7 +3,8 @@
     python -m cwc.train_ideas grade    # Jev grades candidate passages for each practice search (cached)
     python -m cwc.train_ideas train    # fine-tune bge-small on those grades -> data/model-ideas/
     python -m cwc.train_ideas eval     # held-out searches, before vs after, graded by Jev
-    python -m cwc.train_ideas ship     # re-embed every passage with the new model, export it for the browser
+    python -m cwc.train_ideas web      # the tuned model as int8 ONNX for the browser -> data/train/web-model/
+    python -m cwc.train_ideas ship     # switch search to the tuned model and its passage vectors (keeps a backup)
 
 Jev only answers yes/no-with-a-probability, so it can't write better queries; instead its grades
 become training pairs (search, passage it said is on point / passage it said is not). Grades are
@@ -191,5 +192,39 @@ def cmd_eval():
     (OUT / "eval.json").write_text(json.dumps(report, indent=1))
 
 
+def cmd_web():
+    """Export the tuned model the way transformers.js expects it: <name>/onnx/model_quantized.onnx plus tokenizer."""
+    import shutil
+    from onnxruntime.quantization import QuantType, quantize_dynamic
+    from optimum.onnxruntime import ORTModelForFeatureExtraction
+    from transformers import AutoTokenizer
+    out = WEB / WEB_NAME
+    shutil.rmtree(out, ignore_errors=True)
+    (out / "onnx").mkdir(parents=True)
+    ORTModelForFeatureExtraction.from_pretrained(str(TUNED), export=True).save_pretrained(str(out / "fp32"))
+    AutoTokenizer.from_pretrained(str(TUNED)).save_pretrained(str(out))
+    shutil.copy(out / "fp32" / "config.json", out / "config.json")
+    quantize_dynamic(str(out / "fp32" / "model.onnx"), str(out / "onnx" / "model_quantized.onnx"), weight_type=QuantType.QUInt8)
+    shutil.rmtree(out / "fp32")
+    print("wrote", out, sum(f.stat().st_size for f in out.rglob("*") if f.is_file()) // 1_000_000, "MB")
+
+
+def cmd_ship():
+    """Point Ideas search at the tuned model. The stock vectors are kept as vectors.base.i8 to switch back."""
+    import shutil
+    if not (OUT / "tuned_vectors.npy").exists() or not TUNED.exists():
+        raise SystemExit("train first")
+    backup = embed.VECTORS.with_name("vectors.base.i8")
+    if not backup.exists():
+        shutil.copy(embed.VECTORS, backup)
+    embed.quantize(np.load(OUT / "tuned_vectors.npy")).tofile(embed.VECTORS)
+    p = json.loads(embed.PASSAGES.read_text())
+    p["model"] = WEB_NAME
+    embed.PASSAGES.write_text(json.dumps(p, separators=(",", ":")))
+    print("Ideas search now uses", TUNED)
+
+
+WEB, WEB_NAME = OUT / "web-model", "cwc-ideas"
+
 if __name__ == "__main__":
-    {"grade": cmd_grade, "train": cmd_train, "eval": cmd_eval}[sys.argv[1]]()
+    {"grade": cmd_grade, "train": cmd_train, "eval": cmd_eval, "web": cmd_web, "ship": cmd_ship}[sys.argv[1]]()

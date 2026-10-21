@@ -24,6 +24,7 @@ DATA = DB.parent
 PASSAGES = DATA / "passages.json"
 VECTORS = DATA / "vectors.i8"
 DIM = 384
+TUNED = DATA / "model-ideas"   # written by cwc/train_ideas.py
 
 _model = None
 
@@ -32,8 +33,16 @@ def model():
     global _model
     if _model is None:
         from sentence_transformers import SentenceTransformer
-        _model = SentenceTransformer(MODEL)
+        _model = SentenceTransformer(str(TUNED) if tuned() else MODEL)
     return _model
+
+
+def tuned():
+    """True once `python -m cwc.train_ideas ship` has switched the passage vectors to the tuned model."""
+    try:
+        return json.loads(PASSAGES.read_text()).get("model") == "cwc-ideas" and TUNED.exists()
+    except FileNotFoundError:
+        return False
 
 
 def encode(texts, query=False):
