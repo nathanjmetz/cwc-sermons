@@ -84,9 +84,10 @@ def build(db_path=DB, out_dir=DATA, encoder=None):
             meta.append([vid, s, e])
             texts.append(text)
     print(f"Embedding {len(texts)} passages from {len(vids)} sermons ...")
+    name = "cwc-ideas" if encoder is None and tuned() else MODEL   # keep queries and passages on the same model
     vecs = (encoder or encode)(texts)
     out_dir.mkdir(parents=True, exist_ok=True)
-    (out_dir / PASSAGES.name).write_text(json.dumps({"model": MODEL, "dim": int(vecs.shape[1]), "passages": meta},
+    (out_dir / PASSAGES.name).write_text(json.dumps({"model": name, "dim": int(vecs.shape[1]), "passages": meta},
                                                     separators=(",", ":")))
     quantize(vecs).tofile(out_dir / VECTORS.name)
     print(f"Wrote {out_dir / VECTORS.name} ({vecs.shape[0] * vecs.shape[1] / 1e6:.1f} MB)")
