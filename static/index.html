@@ -463,11 +463,11 @@ button:active, .chip:active, .item:active, .moment:active, .how button:active { 
       <h2>Every sermon, searchable to the second.</h2>
       <p>Search on the left. Pick a sermon and it starts right where the preacher gets to it, with the words scrolling along as they're spoken.</p>
       <div class="how">
-        <button type="button" data-mode="words" data-q="Ezekiel 4:9">
+        <button type="button" data-mode="words" data-q="John 3:16">
           <span class="k">Exact words</span>
           <span class="h">What you remember hearing</span>
           <span class="x">A verse, a phrase in quotes, a name, or a date like March 2024.</span>
-          <span class="try">Try “Ezekiel 4:9” →</span>
+          <span class="try">Try “John 3:16” →</span>
         </button>
         <button type="button" data-mode="ideas" data-q="the woman at the well and how Jesus treated women">
           <span class="k">Ideas</span>
@@ -556,9 +556,9 @@ const niceTitle = t => { let p = (t || "").split(/\s[|-]\s|\|/).map(s => s.trim(
 const kindOf = t => /^\s*service\s*\|/i.test(t || "") ? "Full service" : "";
 
 const MODES = {
-  words: { ph: 'Ezekiel 4:9, "prodigal son", March 2024',
+  words: { ph: 'John 3:16, "prodigal son", March 2024',
            hint: "Finds the exact words. Put a phrase in quotes to keep the words together.",
-           ex: ["Ezekiel 4:9", "Leviticus 19", "forgiveness", '"the atonement"', "October 2026"] },
+           ex: ["John 3:16", "Leviticus 19", "forgiveness", '"the atonement"', "October 2026"] },
   ideas: { ph: "Describe an idea, theme, or situation",
            hint: "Finds what was meant, not just the words. Longer descriptions work well.",
            ex: ["the woman at the well and how Jesus treated women", "how to forgive someone who betrayed you",
