@@ -103,9 +103,10 @@
   }
   async function searchScripture(q, rng, limit) {
     const rows = (await get(`refs/${meta.slugs[q.book]}.json`)) || [];
-    const results = new Map();
+    const results = new Map(), said = new Map();
     for (const row of rows) {
       const s = refScore(q, row);
+      if (row[4] != null && (!said.has(row[0]) || row[4] < said.get(row[0])[4])) said.set(row[0], row);   // first time the book is said aloud
       if (s <= 0) continue;
       const v = video(row[0]);
       if (!dateOk(v, rng) || (row[4] != null && !timeOk(v, row[4]))) continue;
@@ -120,6 +121,17 @@
     for (const r of results.values()) {
       r.score += 0.25 * Math.log1p(r.hits) + (r.desc >= 2.6 ? 0.5 : 0);
       r.cited_in = [...r.cited_in].sort(); delete r.hits; delete r.desc;
+    }
+    // only cited in the description: start where the book is first read or named aloud
+    const idx = new Map(meta.videos.map((v, i) => [v[0], i]));
+    let spoken = null;
+    for (const r of results.values()) {
+      if (r.moments.length) continue;
+      const row = said.get(idx.get(r.id));
+      if (row && timeOk(r, row[4])) { r.moments.push(moment(row[4], label({ book: q.book, chapter: row[1] }), row[6], 0)); continue; }
+      spoken = spoken || await postingsFor(stem(q.book.split(" ").pop().toLowerCase()));
+      const ts = (spoken.get(idx.get(r.id)) || []).filter(t => timeOk(r, t / 10));
+      if (ts.length) { const t = Math.min(...ts); r.moments.push({ ...moment(t / 10, q.book, (await snippetAt(r.id, t, [], [])).snippet, 0) }); }
     }
     return finish(results, limit);
   }
